@@ -85,11 +85,11 @@ const MonthlyOverviewPage = () => {
             Month-by-month breakdown with rolling balances
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full sm:w-auto rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             aria-label="Select year"
           >
             {[CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => (
@@ -104,7 +104,7 @@ const MonthlyOverviewPage = () => {
       </div>
 
       {/* Year Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Income</p>
           <p className="text-xl font-bold text-success mt-1">{formatCurrency(yearTotalIncome)}</p>
@@ -212,27 +212,29 @@ const MonthlyOverviewPage = () => {
       </div>
 
       {/* Balance Flow Visual */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-foreground mb-4">Balance Flow</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {monthlyData
-            .filter((m) => m.totalIncome > 0 || m.totalExpenses > 0 || m.totalInvestments > 0 || m.openingBalance !== 0)
-            .map((m, index, arr) => (
-              <div key={`${m.month}-${m.year}`} className="flex items-center gap-2">
-                <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">{getMonthName(m.month).slice(0, 3)}</p>
-                  <p className={cn(
-                    "text-sm font-bold",
-                    m.closingBalance >= 0 ? "text-success" : "text-destructive"
-                  )}>
-                    {formatCurrency(m.closingBalance)}
-                  </p>
+        <div className="overflow-x-auto">
+          <div className="flex items-center gap-2 min-w-max pb-2">
+            {monthlyData
+              .filter((m) => m.totalIncome > 0 || m.totalExpenses > 0 || m.totalInvestments > 0 || m.openingBalance !== 0)
+              .map((m, index, arr) => (
+                <div key={`${m.month}-${m.year}`} className="flex items-center gap-2">
+                  <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-center">
+                    <p className="text-xs text-muted-foreground">{getMonthName(m.month).slice(0, 3)}</p>
+                    <p className={cn(
+                      "text-sm font-bold whitespace-nowrap",
+                      m.closingBalance >= 0 ? "text-success" : "text-destructive"
+                    )}>
+                      {formatCurrency(m.closingBalance)}
+                    </p>
+                  </div>
+                  {index < arr.length - 1 && (
+                    <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  )}
                 </div>
-                {index < arr.length - 1 && (
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-            ))}
+              ))}
+          </div>
         </div>
       </div>
     </div>

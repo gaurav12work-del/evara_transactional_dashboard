@@ -51,7 +51,7 @@ const LoginPage = () => {
 
         <form
           onSubmit={handleSubmit}
-          className="mt-8 space-y-6 rounded-lg border border-border bg-card p-8 shadow-sm"
+          className="mt-8 space-y-6 rounded-lg border border-border bg-card p-5 sm:p-8 shadow-sm"
         >
           <div className="space-y-4">
             <div>

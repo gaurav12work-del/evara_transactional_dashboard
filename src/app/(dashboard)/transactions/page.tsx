@@ -99,14 +99,14 @@ const TransactionsPage = () => {
             Manage income and expenses across properties
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <PropertySwitcher
             selectedPropertyId={selectedPropertyId}
             onPropertyChange={setSelectedPropertyId}
           />
           <button
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             aria-label="Add new transaction"
           >
             <Plus className="h-4 w-4" />
@@ -138,12 +138,12 @@ const TransactionsPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Filter className="h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+        <Filter className="hidden sm:block h-4 w-4 text-muted-foreground" />
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full sm:w-auto rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           aria-label="Filter by type"
         >
           <option value="all">All Types</option>
@@ -153,7 +153,7 @@ const TransactionsPage = () => {
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full sm:w-auto rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           aria-label="Filter by category"
         >
           <option value="all">All Categories</option>

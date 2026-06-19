@@ -56,10 +56,10 @@ const PropertySwitcher = ({
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full sm:w-auto">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted transition-colors min-w-[200px]"
+        className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted transition-colors sm:min-w-[200px]"
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label="Select property"

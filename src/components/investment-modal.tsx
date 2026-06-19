@@ -103,7 +103,7 @@ const InvestmentModal = ({
       aria-modal="true"
       aria-labelledby="investment-modal-title"
     >
-      <div className="w-full max-w-md rounded-xl bg-card border border-border p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-md rounded-xl bg-card border border-border p-4 sm:p-6 shadow-xl max-h-[95vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2
             id="investment-modal-title"

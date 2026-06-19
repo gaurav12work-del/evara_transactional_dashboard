@@ -161,10 +161,10 @@ const SetupPage = () => {
       </div>
 
       {/* Investment Categories */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <div className="h-2.5 w-2.5 rounded-full bg-primary" />
-          <h2 className="text-lg font-semibold text-foreground uppercase tracking-wide">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground uppercase tracking-wide">
             Investment Categories
           </h2>
         </div>
@@ -211,10 +211,10 @@ const SetupPage = () => {
       </div>
 
       {/* Expense Categories */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <div className="h-2.5 w-2.5 rounded-full bg-destructive" />
-          <h2 className="text-lg font-semibold text-foreground uppercase tracking-wide">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground uppercase tracking-wide">
             Expense Categories
           </h2>
         </div>
@@ -261,7 +261,7 @@ const SetupPage = () => {
       </div>
 
       {/* How Rolling Balances Work */}
-      <div className="rounded-xl border border-border bg-warning/5 p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-warning/5 p-4 sm:p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
           <Info className="h-5 w-5 text-warning" />
           <h2 className="text-lg font-semibold text-foreground uppercase tracking-wide">
@@ -285,7 +285,7 @@ const SetupPage = () => {
       </div>
 
       {/* Monthly Opening Balances */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-2">
           <div className="h-2.5 w-2.5 rounded-full bg-primary" />
           <h2 className="text-lg font-semibold text-foreground">
@@ -302,7 +302,7 @@ const SetupPage = () => {
           </p>
         ) : (
           <>
-            <div className="flex flex-wrap items-end gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end mb-6">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Property
@@ -310,7 +310,7 @@ const SetupPage = () => {
                 <select
                   value={selectedProperty}
                   onChange={(e) => setSelectedProperty(e.target.value)}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   aria-label="Select property"
                 >
                   {properties.map((p) => (
@@ -328,7 +328,7 @@ const SetupPage = () => {
                 <select
                   value={balanceMonth}
                   onChange={(e) => setBalanceMonth(parseInt(e.target.value))}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   aria-label="Select month"
                 >
                   {MONTHS.map((m) => (
@@ -346,7 +346,7 @@ const SetupPage = () => {
                 <select
                   value={balanceYear}
                   onChange={(e) => setBalanceYear(parseInt(e.target.value))}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   aria-label="Select year"
                 >
                   {YEARS.map((y) => (
@@ -367,7 +367,7 @@ const SetupPage = () => {
                   value={balanceAmount}
                   onChange={(e) => setBalanceAmount(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, handleSaveBalance)}
-                  className="w-40 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   placeholder="e.g. 10000"
                   aria-label="Opening balance amount"
                 />
@@ -375,7 +375,7 @@ const SetupPage = () => {
 
               <button
                 onClick={handleSaveBalance}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="w-full sm:w-auto rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Save opening balance
               </button>
@@ -383,7 +383,7 @@ const SetupPage = () => {
 
             {/* Existing balances list */}
             {propertyBalances.length > 0 && (
-              <div className="border border-border rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden overflow-x-auto">
                 <table className="w-full text-sm" aria-label="Saved opening balances">
                   <thead className="bg-muted/50 border-b border-border">
                     <tr>

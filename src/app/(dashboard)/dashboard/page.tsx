@@ -119,7 +119,7 @@ const DashboardPage = () => {
     return (
       <div className="space-y-6">
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-32 animate-pulse rounded-lg bg-muted" />
           ))}
@@ -212,13 +212,91 @@ const DashboardPage = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Income vs Expenses vs Investments Bar Chart */}
-        <div className="lg:col-span-2 rounded-xl border border-border bg-card p-6 shadow-sm">
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground mb-4">
             Monthly Breakdown
           </h2>
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
+            <div className="h-[200px] sm:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d9cfc2" />
+                  <XAxis dataKey="name" fontSize={12} tickLine={false} />
+                  <YAxis fontSize={12} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid #d9cfc2",
+                      backgroundColor: "#faf6f0",
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="income" fill="#4a7c3f" radius={[4, 4, 0, 0]} name="Income" />
+                  <Bar dataKey="expenses" fill="#b94a3b" radius={[4, 4, 0, 0]} name="Expenses" />
+                  <Bar dataKey="investments" fill="#556b2f" radius={[4, 4, 0, 0]} name="Investments" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[200px] sm:h-[300px] text-muted-foreground">
+              No data yet. Add transactions to see charts.
+            </div>
+          )}
+        </div>
+
+        {/* Expense Breakdown Pie Chart */}
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            Expense Breakdown
+          </h2>
+          {categoryData.length > 0 ? (
+            <div className="h-[200px] sm:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={70}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {categoryData.map((_, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid #d9cfc2",
+                      backgroundColor: "#faf6f0",
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[200px] sm:h-[300px] text-muted-foreground">
+              No expenses yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Balance Trend Line Chart */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
+          Balance Trend
+        </h2>
+        {chartData.length > 0 ? (
+          <div className="h-[180px] sm:h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#d9cfc2" />
                 <XAxis dataKey="name" fontSize={12} tickLine={false} />
                 <YAxis fontSize={12} tickLine={false} />
@@ -229,98 +307,26 @@ const DashboardPage = () => {
                     backgroundColor: "#faf6f0",
                   }}
                 />
-                <Legend />
-                <Bar dataKey="income" fill="#4a7c3f" radius={[4, 4, 0, 0]} name="Income" />
-                <Bar dataKey="expenses" fill="#b94a3b" radius={[4, 4, 0, 0]} name="Expenses" />
-                <Bar dataKey="investments" fill="#556b2f" radius={[4, 4, 0, 0]} name="Investments" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-              No data yet. Add transactions to see charts.
-            </div>
-          )}
-        </div>
-
-        {/* Expense Breakdown Pie Chart */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            Expense Breakdown
-          </h2>
-          {categoryData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {categoryData.map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: "8px",
-                    border: "1px solid #d9cfc2",
-                    backgroundColor: "#faf6f0",
-                  }}
+                <Line
+                  type="monotone"
+                  dataKey="balance"
+                  stroke="#556b2f"
+                  strokeWidth={2}
+                  dot={{ fill: "#556b2f" }}
+                  name="Closing Balance"
                 />
-                <Legend />
-              </PieChart>
+              </LineChart>
             </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-              No expenses yet.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Balance Trend Line Chart */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Balance Trend
-        </h2>
-        {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d9cfc2" />
-              <XAxis dataKey="name" fontSize={12} tickLine={false} />
-              <YAxis fontSize={12} tickLine={false} />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "8px",
-                  border: "1px solid #d9cfc2",
-                  backgroundColor: "#faf6f0",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="balance"
-                stroke="#556b2f"
-                strokeWidth={2}
-                dot={{ fill: "#556b2f" }}
-                name="Closing Balance"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          </div>
         ) : (
-          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+          <div className="flex items-center justify-center h-[180px] sm:h-[250px] text-muted-foreground">
             No data yet.
           </div>
         )}
       </div>
 
       {/* Recent Transactions */}
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-foreground mb-4">
           Recent Transactions
         </h2>
