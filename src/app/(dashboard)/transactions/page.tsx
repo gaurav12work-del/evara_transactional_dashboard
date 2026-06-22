@@ -2,84 +2,215 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Property, Transaction } from "@/types";
-import { formatCurrency } from "@/lib/utils";
-import PropertySwitcher from "@/components/property-switcher";
-import TransactionModal from "@/components/transaction-modal";
-import {
-  Plus,
-  Trash2,
-  ArrowUpRight,
-  ArrowDownRight,
-  Filter,
-} from "lucide-react";
+import { Property, Transaction, Investment, ExpenseCategory, IncomeCategory, InvestmentCategory } from "@/types";
+import { formatCurrency, getMonthName } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
+
+type EntryType = "income" | "expense" | "investment";
+
+interface UnifiedEntry {
+  id: string;
+  property_id: string;
+  type: EntryType;
+  category: string;
+  amount: number;
+  description: string;
+  date: string;
+  table: "transactions" | "investments";
+}
 
 const TransactionsPage = () => {
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [entries, setEntries] = useState<UnifiedEntry[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [incomeCategories, setIncomeCategories] = useState<IncomeCategory[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [investmentCategories, setInvestmentCategories] = useState<InvestmentCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [filterCategory, setFilterCategory] = useState<string>("all");
+
+  // Inline form state
+  const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
+  const [formType, setFormType] = useState<EntryType | "">("");
+  const [formCategory, setFormCategory] = useState("");
+  const [formPropertyId, setFormPropertyId] = useState("");
+  const [formAmount, setFormAmount] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Filter state
   const [filterType, setFilterType] = useState<string>("all");
+  const [filterPropertyId, setFilterPropertyId] = useState<string>("all");
+  const [filterMonth, setFilterMonth] = useState<string>("all");
+
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
 
-    const { data: propsData } = await supabase
-      .from("properties")
-      .select("*")
-      .order("name");
+    const [
+      { data: propsData },
+      { data: txData },
+      { data: invData },
+      { data: incCats },
+      { data: expCats },
+      { data: invCats },
+    ] = await Promise.all([
+      supabase.from("properties").select("*").order("name"),
+      supabase.from("transactions").select("*").order("date", { ascending: false }),
+      supabase.from("investments").select("*").order("date", { ascending: false }),
+      supabase.from("income_categories").select("*").order("name"),
+      supabase.from("expense_categories").select("*").order("name"),
+      supabase.from("investment_categories").select("*").order("name"),
+    ]);
 
     if (propsData) setProperties(propsData);
 
-    let query = supabase
-      .from("transactions")
-      .select("*")
-      .order("date", { ascending: false });
-
-    if (selectedPropertyId) {
-      query = query.eq("property_id", selectedPropertyId);
+    const unified: UnifiedEntry[] = [];
+    if (txData) {
+      txData.forEach((tx: Transaction) => {
+        unified.push({
+          id: tx.id,
+          property_id: tx.property_id,
+          type: tx.type as EntryType,
+          category: tx.category,
+          amount: tx.amount,
+          description: tx.description,
+          date: tx.date,
+          table: "transactions",
+        });
+      });
     }
+    if (invData) {
+      invData.forEach((inv: Investment) => {
+        unified.push({
+          id: inv.id,
+          property_id: inv.property_id,
+          type: "investment",
+          category: inv.category,
+          amount: inv.amount,
+          description: inv.description,
+          date: inv.date,
+          table: "investments",
+        });
+      });
+    }
+    unified.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setEntries(unified);
 
-    const { data } = await query;
-    if (data) setTransactions(data);
+    if (incCats) setIncomeCategories(incCats);
+    if (expCats) setExpenseCategories(expCats);
+    if (invCats) setInvestmentCategories(invCats);
 
     setLoading(false);
-  }, [selectedPropertyId]);
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const handleDelete = async (id: string) => {
-    const confirmed = window.confirm("Delete this transaction?");
-    if (!confirmed) return;
+  const getCategoriesForType = (type: EntryType | "") => {
+    if (type === "income") return incomeCategories;
+    if (type === "expense") return expenseCategories;
+    if (type === "investment") return investmentCategories;
+    return [];
+  };
 
-    await supabase.from("transactions").delete().eq("id", id);
+  const handleClear = () => {
+    setFormDate(new Date().toISOString().split("T")[0]);
+    setFormType("");
+    setFormCategory("");
+    setFormPropertyId("");
+    setFormAmount("");
+    setFormDescription("");
+    setFormError(null);
+  };
+
+  const handleAddTransaction = async () => {
+    setFormError(null);
+
+    if (!formType) {
+      setFormError("Please select a type");
+      return;
+    }
+    if (!formCategory) {
+      setFormError("Please select a category");
+      return;
+    }
+    if (!formPropertyId) {
+      setFormError("Please select a property");
+      return;
+    }
+    if (!formAmount || parseFloat(formAmount) <= 0) {
+      setFormError("Amount must be greater than 0");
+      return;
+    }
+
+    setSubmitting(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setFormError("You must be logged in");
+      setSubmitting(false);
+      return;
+    }
+
+    let insertError;
+
+    if (formType === "investment") {
+      const { error } = await supabase.from("investments").insert({
+        property_id: formPropertyId,
+        user_id: user.id,
+        category: formCategory,
+        amount: parseFloat(formAmount),
+        description: formDescription.trim(),
+        date: formDate,
+      });
+      insertError = error;
+    } else {
+      const { error } = await supabase.from("transactions").insert({
+        property_id: formPropertyId,
+        user_id: user.id,
+        type: formType,
+        category: formCategory,
+        amount: parseFloat(formAmount),
+        description: formDescription.trim(),
+        date: formDate,
+      });
+      insertError = error;
+    }
+
+    if (insertError) {
+      setFormError(insertError.message);
+      setSubmitting(false);
+      return;
+    }
+
+    handleClear();
+    setSubmitting(false);
     fetchData();
   };
 
-  const filteredTransactions = transactions.filter((tx) => {
-    if (filterCategory !== "all" && tx.category !== filterCategory) return false;
-    if (filterType !== "all" && tx.type !== filterType) return false;
-    return true;
-  });
+  const handleDelete = async (entry: UnifiedEntry) => {
+    const confirmed = window.confirm("Delete this transaction?");
+    if (!confirmed) return;
 
-  const totalIncome = filteredTransactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalExpenses = filteredTransactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+    await supabase.from(entry.table).delete().eq("id", entry.id);
+    fetchData();
+  };
 
   const getPropertyName = (propertyId: string) => {
     return properties.find((p) => p.id === propertyId)?.name || "Unknown";
   };
 
-  const uniqueCategories = [...new Set(transactions.map((t) => t.category))];
+  const filteredEntries = entries.filter((entry) => {
+    if (filterType !== "all" && entry.type !== filterType) return false;
+    if (filterPropertyId !== "all" && entry.property_id !== filterPropertyId) return false;
+    if (filterMonth !== "all") {
+      const entryMonth = new Date(entry.date).getMonth() + 1;
+      if (entryMonth !== parseInt(filterMonth)) return false;
+    }
+    return true;
+  });
 
   if (loading) {
     return (
@@ -92,82 +223,201 @@ const TransactionsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage income and expenses across properties
-          </p>
+      <h1 className="text-2xl font-bold text-foreground italic">Transactions</h1>
+
+      {/* Inline Add Form */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+          Add a Transaction
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          {/* Date */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Date
+            </label>
+            <input
+              type="date"
+              value={formDate}
+              onChange={(e) => setFormDate(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Transaction date"
+            />
+          </div>
+
+          {/* Type */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Type
+            </label>
+            <select
+              value={formType}
+              onChange={(e) => {
+                setFormType(e.target.value as EntryType | "");
+                setFormCategory("");
+              }}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Select type"
+            >
+              <option value="">&mdash; select &mdash;</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+              <option value="investment">Investment</option>
+            </select>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Category
+            </label>
+            <select
+              value={formCategory}
+              onChange={(e) => setFormCategory(e.target.value)}
+              disabled={!formType}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Select category"
+            >
+              <option value="">
+                {formType ? "Select category" : "Select type first"}
+              </option>
+              {getCategoriesForType(formType).map((cat) => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Property */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Property
+            </label>
+            <select
+              value={formPropertyId}
+              onChange={(e) => setFormPropertyId(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Select property"
+            >
+              <option value="">All properties</option>
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Amount (₹)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={formAmount}
+              onChange={(e) => setFormAmount(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="0.00"
+              aria-label="Amount"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Description
+            </label>
+            <input
+              type="text"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="e.g. Pest control, Cleaning supplies"
+              aria-label="Description"
+            />
+          </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          <PropertySwitcher
-            selectedPropertyId={selectedPropertyId}
-            onPropertyChange={setSelectedPropertyId}
-          />
+
+        {formError && (
+          <div className="mt-3 rounded-md bg-destructive/10 p-2.5 text-sm text-destructive" role="alert">
+            {formError}
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 mt-4">
           <button
-            onClick={() => setModalOpen(true)}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            aria-label="Add new transaction"
+            onClick={handleAddTransaction}
+            disabled={submitting}
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            aria-label="Add transaction"
           >
-            <Plus className="h-4 w-4" />
-            Add
+            + Add transaction
+          </button>
+          <button
+            onClick={handleClear}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            aria-label="Clear form"
+          >
+            Clear
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Total Income</p>
-          <p className="text-xl font-bold text-success">
-            {formatCurrency(totalIncome)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Total Expenses</p>
-          <p className="text-xl font-bold text-destructive">
-            {formatCurrency(totalExpenses)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Net</p>
-          <p className="text-xl font-bold text-foreground">
-            {formatCurrency(totalIncome - totalExpenses)}
-          </p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
-        <Filter className="hidden sm:block h-4 w-4 text-muted-foreground" />
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="w-full sm:w-auto rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          aria-label="Filter by type"
-        >
-          <option value="all">All Types</option>
-          <option value="income">Income</option>
-          <option value="expense">Expense</option>
-        </select>
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="w-full sm:w-auto rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          aria-label="Filter by category"
-        >
-          <option value="all">All Categories</option>
-          {uniqueCategories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* Transactions Table */}
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        {filteredTransactions.length === 0 ? (
+        {/* Table header with count and filters */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-border">
+          <p className="text-sm font-medium text-foreground">
+            {filteredEntries.length} transaction{filteredEntries.length !== 1 ? "s" : ""}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Filter by type"
+            >
+              <option value="all">All types</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+              <option value="investment">Investment</option>
+            </select>
+            <select
+              value={filterPropertyId}
+              onChange={(e) => setFilterPropertyId(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Filter by property"
+            >
+              <option value="all">All properties</option>
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Filter by month"
+            >
+              <option value="all">All months</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m}>
+                  {getMonthName(m)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Table */}
+        {filteredEntries.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12">
             <p className="text-sm text-muted-foreground">
               No transactions found.
@@ -178,80 +428,78 @@ const TransactionsPage = () => {
             <table className="w-full text-sm" aria-label="Transactions table">
               <thead className="border-b border-border bg-muted/50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase text-xs">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Description
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase text-xs">
+                    Type
                   </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Property
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase text-xs">
                     Category
                   </th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase text-xs">
+                    Property
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase text-xs">
                     Amount
                   </th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                    Actions
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase text-xs">
+                    Description
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase text-xs">
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTransactions.map((tx) => (
+                {filteredEntries.map((entry) => (
                   <tr
-                    key={tx.id}
+                    key={`${entry.table}-${entry.id}`}
                     className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
                   >
-                    <td className="px-4 py-3 text-foreground">
-                      {new Date(tx.date).toLocaleDateString("en-IN", {
+                    <td className="px-4 py-3 text-foreground whitespace-nowrap">
+                      {new Date(entry.date).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
                       })}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`h-6 w-6 rounded-full flex items-center justify-center ${
-                            tx.type === "income"
-                              ? "bg-success/10"
-                              : "bg-destructive/10"
-                          }`}
-                        >
-                          {tx.type === "income" ? (
-                            <ArrowUpRight className="h-3 w-3 text-success" />
-                          ) : (
-                            <ArrowDownRight className="h-3 w-3 text-destructive" />
-                          )}
-                        </div>
-                        <span className="text-foreground">
-                          {tx.description || "-"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {getPropertyName(tx.property_id)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
-                        {tx.category}
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          entry.type === "income"
+                            ? "bg-success/10 text-success"
+                            : entry.type === "expense"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-primary/10 text-primary"
+                        }`}
+                      >
+                        {entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Investment"}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-foreground">
+                      {entry.category}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {getPropertyName(entry.property_id)}
+                    </td>
                     <td
-                      className={`px-4 py-3 text-right font-semibold ${
-                        tx.type === "income"
+                      className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${
+                        entry.type === "income"
                           ? "text-success"
-                          : "text-destructive"
+                          : entry.type === "expense"
+                          ? "text-destructive"
+                          : "text-primary"
                       }`}
                     >
-                      {tx.type === "income" ? "+" : "-"}
-                      {formatCurrency(tx.amount)}
+                      {entry.type === "income" ? "+" : "-"}
+                      {formatCurrency(entry.amount)}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {entry.description || "-"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => handleDelete(tx.id)}
+                        onClick={() => handleDelete(entry)}
                         className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                         aria-label="Delete transaction"
                       >
@@ -265,17 +513,6 @@ const TransactionsPage = () => {
           </div>
         )}
       </div>
-
-      {modalOpen && (
-        <TransactionModal
-          properties={properties}
-          selectedPropertyId={selectedPropertyId}
-          onClose={() => {
-            setModalOpen(false);
-            fetchData();
-          }}
-        />
-      )}
     </div>
   );
 };

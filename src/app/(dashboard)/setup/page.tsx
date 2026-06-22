@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { ExpenseCategory, InvestmentCategory, MonthlyBalance, Property } from "@/types";
+import { ExpenseCategory, IncomeCategory, InvestmentCategory, MonthlyBalance, Property } from "@/types";
 import { formatCurrency, getMonthName } from "@/lib/utils";
 import { Plus, X, Info } from "lucide-react";
 
@@ -11,10 +11,12 @@ const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - 2 + i);
 
 const SetupPage = () => {
+  const [incomeCategories, setIncomeCategories] = useState<IncomeCategory[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [investmentCategories, setInvestmentCategories] = useState<InvestmentCategory[]>([]);
   const [monthlyBalances, setMonthlyBalances] = useState<MonthlyBalance[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [newIncomeCat, setNewIncomeCat] = useState("");
   const [newExpenseCat, setNewExpenseCat] = useState("");
   const [newInvestmentCat, setNewInvestmentCat] = useState("");
   const [selectedProperty, setSelectedProperty] = useState<string>("");
@@ -28,17 +30,20 @@ const SetupPage = () => {
     setLoading(true);
 
     const [
+      { data: incCats },
       { data: expCats },
       { data: invCats },
       { data: props },
       { data: balances },
     ] = await Promise.all([
+      supabase.from("income_categories").select("*").order("name"),
       supabase.from("expense_categories").select("*").order("name"),
       supabase.from("investment_categories").select("*").order("name"),
       supabase.from("properties").select("*").order("name"),
       supabase.from("monthly_balances").select("*").order("year").order("month"),
     ]);
 
+    if (incCats) setIncomeCategories(incCats);
     if (expCats) setExpenseCategories(expCats);
     if (invCats) setInvestmentCategories(invCats);
     if (props) {
@@ -55,6 +60,26 @@ const SetupPage = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleAddIncomeCategory = async () => {
+    if (!newIncomeCat.trim()) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from("income_categories").insert({
+      user_id: user.id,
+      name: newIncomeCat.trim(),
+    });
+
+    setNewIncomeCat("");
+    fetchData();
+  };
+
+  const handleRemoveIncomeCategory = async (id: string) => {
+    await supabase.from("income_categories").delete().eq("id", id);
+    fetchData();
+  };
 
   const handleAddExpenseCategory = async () => {
     if (!newExpenseCat.trim()) return;
@@ -158,6 +183,56 @@ const SetupPage = () => {
         <p className="text-sm text-muted-foreground">
           Configure categories and opening balances for your properties
         </p>
+      </div>
+
+      {/* Income Categories */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-2.5 w-2.5 rounded-full bg-success" />
+          <h2 className="text-base sm:text-lg font-semibold text-foreground uppercase tracking-wide">
+            Income Categories
+          </h2>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {incomeCategories.map((cat) => (
+            <span
+              key={cat.id}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1.5 text-sm font-medium text-foreground"
+            >
+              {cat.name}
+              <button
+                onClick={() => handleRemoveIncomeCategory(cat.id)}
+                className="rounded-full p-0.5 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                aria-label={`Remove ${cat.name}`}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+          {incomeCategories.length === 0 && (
+            <p className="text-sm text-muted-foreground">No income categories yet.</p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={newIncomeCat}
+            onChange={(e) => setNewIncomeCat(e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, handleAddIncomeCategory)}
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="e.g. Bookings, Rent, Other"
+            aria-label="New income category"
+          />
+          <button
+            onClick={handleAddIncomeCategory}
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </button>
+        </div>
       </div>
 
       {/* Investment Categories */}

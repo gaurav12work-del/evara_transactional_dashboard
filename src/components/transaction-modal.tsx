@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Property, TransactionType, ExpenseCategory } from "@/types";
+import { Property, TransactionType, ExpenseCategory, IncomeCategory, InvestmentCategory } from "@/types";
 import { X } from "lucide-react";
 
 interface TransactionModalProps {
@@ -17,9 +17,13 @@ const TransactionModal = ({
   onClose,
 }: TransactionModalProps) => {
   const [propertyId, setPropertyId] = useState(selectedPropertyId || properties[0]?.id || "");
-  const [type, setType] = useState<TransactionType>("expense");
+  const [type, setType] = useState<TransactionType | "investment">("expense");
+  const [incomeCategories, setIncomeCategories] = useState<IncomeCategory[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [investmentCategories, setInvestmentCategories] = useState<InvestmentCategory[]>([]);
   const [category, setCategory] = useState("");
+  const [incomeCategory, setIncomeCategory] = useState("");
+  const [investmentCategory, setInvestmentCategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -32,14 +36,23 @@ const TransactionModal = ({
   useEffect(() => {
     const fetchCategories = async () => {
       setFetchingCats(true);
-      const { data } = await supabase
-        .from("expense_categories")
-        .select("*")
-        .order("name");
+      const [{ data: incCats }, { data: expCats }, { data: invCats }] = await Promise.all([
+        supabase.from("income_categories").select("*").order("name"),
+        supabase.from("expense_categories").select("*").order("name"),
+        supabase.from("investment_categories").select("*").order("name"),
+      ]);
 
-      if (data && data.length > 0) {
-        setExpenseCategories(data);
-        setCategory(data[0].name);
+      if (incCats && incCats.length > 0) {
+        setIncomeCategories(incCats);
+        setIncomeCategory(incCats[0].name);
+      }
+      if (expCats && expCats.length > 0) {
+        setExpenseCategories(expCats);
+        setCategory(expCats[0].name);
+      }
+      if (invCats && invCats.length > 0) {
+        setInvestmentCategories(invCats);
+        setInvestmentCategory(invCats[0].name);
       }
       setFetchingCats(false);
     };
@@ -56,7 +69,15 @@ const TransactionModal = ({
       return;
     }
 
-    const finalCategory = type === "income" ? "Bookings" : (category || customCategory);
+    let finalCategory = "";
+    if (type === "income") {
+      finalCategory = incomeCategory || customCategory;
+    } else if (type === "investment") {
+      finalCategory = investmentCategory || customCategory;
+    } else {
+      finalCategory = category || customCategory;
+    }
+
     if (!finalCategory) {
       setError("Please select or enter a category");
       return;
@@ -76,15 +97,30 @@ const TransactionModal = ({
       return;
     }
 
-    const { error: insertError } = await supabase.from("transactions").insert({
-      property_id: propertyId,
-      user_id: user.id,
-      type,
-      category: finalCategory,
-      amount: parseFloat(amount),
-      description: description.trim(),
-      date,
-    });
+    let insertError;
+
+    if (type === "investment") {
+      const { error } = await supabase.from("investments").insert({
+        property_id: propertyId,
+        user_id: user.id,
+        category: finalCategory,
+        amount: parseFloat(amount),
+        description: description.trim(),
+        date,
+      });
+      insertError = error;
+    } else {
+      const { error } = await supabase.from("transactions").insert({
+        property_id: propertyId,
+        user_id: user.id,
+        type,
+        category: finalCategory,
+        amount: parseFloat(amount),
+        description: description.trim(),
+        date,
+      });
+      insertError = error;
+    }
 
     if (insertError) {
       setError(insertError.message);
@@ -172,6 +208,18 @@ const TransactionModal = ({
               >
                 Expense
               </button>
+              <button
+                type="button"
+                onClick={() => setType("investment")}
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                  type === "investment"
+                    ? "bg-primary text-white"
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                }`}
+                aria-pressed={type === "investment"}
+              >
+                Investment
+              </button>
             </div>
           </div>
 
@@ -213,16 +261,68 @@ const TransactionModal = ({
           {type === "income" && (
             <div>
               <label htmlFor="tx-income-category" className="block text-sm font-medium text-foreground">
-                Category
+                Category *
               </label>
-              <input
-                id="tx-income-category"
-                type="text"
-                value="Bookings"
-                disabled
-                className="mt-1 block w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
-                aria-label="Income category"
-              />
+              {fetchingCats ? (
+                <div className="mt-1 h-9 w-full animate-pulse rounded-md bg-muted" />
+              ) : incomeCategories.length > 0 ? (
+                <select
+                  id="tx-income-category"
+                  value={incomeCategory}
+                  onChange={(e) => setIncomeCategory(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  required
+                  aria-label="Select income category"
+                >
+                  {incomeCategories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Enter category (add categories in Setup)"
+                  required
+                  aria-label="Enter income category"
+                />
+              )}
+            </div>
+          )}
+
+          {type === "investment" && (
+            <div>
+              <label htmlFor="tx-investment-category" className="block text-sm font-medium text-foreground">
+                Category *
+              </label>
+              {fetchingCats ? (
+                <div className="mt-1 h-9 w-full animate-pulse rounded-md bg-muted" />
+              ) : investmentCategories.length > 0 ? (
+                <select
+                  id="tx-investment-category"
+                  value={investmentCategory}
+                  onChange={(e) => setInvestmentCategory(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  required
+                  aria-label="Select investment category"
+                >
+                  {investmentCategories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Enter category (add categories in Setup)"
+                  required
+                  aria-label="Enter investment category"
+                />
+              )}
             </div>
           )}
 

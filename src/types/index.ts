@@ -9,6 +9,20 @@ export interface Property {
   updated_at: string;
 }
 
+export interface IncomeCategory {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface IncomeCategory {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface ExpenseCategory {
   id: string;
   user_id: string;
@@ -35,6 +49,8 @@ export interface Transaction {
   created_at: string;
 }
 
+export type InvestmentStatus = "active" | "written_off";
+
 export interface Investment {
   id: string;
   property_id: string;
@@ -43,6 +59,7 @@ export interface Investment {
   amount: number;
   description: string;
   date: string;
+  status: InvestmentStatus;
   created_at: string;
 }
 

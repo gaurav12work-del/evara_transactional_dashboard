@@ -11,6 +11,14 @@ CREATE TABLE properties (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- Income Categories (user-defined)
+CREATE TABLE income_categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
 -- Expense Categories (user-defined)
 CREATE TABLE expense_categories (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -49,6 +57,7 @@ CREATE TABLE investments (
   amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
   description TEXT NOT NULL DEFAULT '',
   date DATE NOT NULL DEFAULT CURRENT_DATE,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'written_off')),
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
@@ -67,6 +76,7 @@ CREATE TABLE monthly_balances (
 
 -- Indexes
 CREATE INDEX idx_properties_user_id ON properties(user_id);
+CREATE INDEX idx_income_categories_user_id ON income_categories(user_id);
 CREATE INDEX idx_expense_categories_user_id ON expense_categories(user_id);
 CREATE INDEX idx_investment_categories_user_id ON investment_categories(user_id);
 CREATE INDEX idx_transactions_property_id ON transactions(property_id);
@@ -79,6 +89,7 @@ CREATE INDEX idx_monthly_balances_property_id ON monthly_balances(property_id);
 
 -- Row Level Security
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE income_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expense_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investment_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
@@ -94,6 +105,14 @@ CREATE POLICY "Users can update their own properties"
   ON properties FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own properties"
   ON properties FOR DELETE USING (auth.uid() = user_id);
+
+-- Income Categories policies
+CREATE POLICY "Users can view their own income categories"
+  ON income_categories FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own income categories"
+  ON income_categories FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own income categories"
+  ON income_categories FOR DELETE USING (auth.uid() = user_id);
 
 -- Expense Categories policies
 CREATE POLICY "Users can view their own expense categories"

@@ -11,7 +11,7 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
-  DollarSign,
+  IndianRupee,
   Package,
 } from "lucide-react";
 import {
@@ -98,7 +98,7 @@ const DashboardPage = () => {
     balance: m.closingBalance,
   }));
 
-  const categoryData = transactions
+  const expenseCategoryData = transactions
     .filter((t) => t.type === "expense")
     .reduce(
       (acc, t) => {
@@ -112,6 +112,34 @@ const DashboardPage = () => {
       },
       [] as { name: string; value: number }[]
     );
+
+  const incomeCategoryData = transactions
+    .filter((t) => t.type === "income")
+    .reduce(
+      (acc, t) => {
+        const existing = acc.find((a) => a.name === t.category);
+        if (existing) {
+          existing.value += t.amount;
+        } else {
+          acc.push({ name: t.category, value: t.amount });
+        }
+        return acc;
+      },
+      [] as { name: string; value: number }[]
+    );
+
+  const investmentCategoryData = investments.reduce(
+    (acc, inv) => {
+      const existing = acc.find((a) => a.name === inv.category);
+      if (existing) {
+        existing.value += inv.amount;
+      } else {
+        acc.push({ name: inv.category, value: inv.amount });
+      }
+      return acc;
+    },
+    [] as { name: string; value: number }[]
+  );
 
   const recentTransactions = transactions.slice(0, 5);
 
@@ -188,7 +216,7 @@ const DashboardPage = () => {
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Closing</p>
-            <DollarSign className="h-4 w-4 text-foreground" />
+            <IndianRupee className="h-4 w-4 text-foreground" />
           </div>
           <p className="mt-2 text-xl font-bold text-foreground">
             {formatCurrency(currentMonth.closingBalance)}
@@ -249,12 +277,12 @@ const DashboardPage = () => {
           <h2 className="text-lg font-semibold text-foreground mb-4">
             Expense Breakdown
           </h2>
-          {categoryData.length > 0 ? (
+          {expenseCategoryData.length > 0 ? (
             <div className="h-[200px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={categoryData}
+                    data={expenseCategoryData}
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
@@ -262,7 +290,7 @@ const DashboardPage = () => {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {categoryData.map((_, index) => (
+                    {expenseCategoryData.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -283,6 +311,95 @@ const DashboardPage = () => {
           ) : (
             <div className="flex items-center justify-center h-[200px] sm:h-[300px] text-muted-foreground">
               No expenses yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Income & Investment Pie Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Income by Category Pie Chart */}
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            Income by Category
+          </h2>
+          {incomeCategoryData.length > 0 ? (
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={incomeCategoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {incomeCategoryData.map((_, index) => (
+                      <Cell
+                        key={`income-cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid #d9cfc2",
+                      backgroundColor: "#faf6f0",
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+              No income yet.
+            </div>
+          )}
+        </div>
+
+        {/* Investment by Category Pie Chart */}
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            Investment by Category
+          </h2>
+          {investmentCategoryData.length > 0 ? (
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={investmentCategoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {investmentCategoryData.map((_, index) => (
+                      <Cell
+                        key={`inv-cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid #d9cfc2",
+                      backgroundColor: "#faf6f0",
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+              No investments yet.
             </div>
           )}
         </div>
