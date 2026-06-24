@@ -66,6 +66,7 @@ const MonthlyOverviewPage = () => {
   const yearTotalIncome = monthlyData.reduce((s, m) => s + m.totalIncome, 0);
   const yearTotalExpenses = monthlyData.reduce((s, m) => s + m.totalExpenses, 0);
   const yearTotalInvestments = monthlyData.reduce((s, m) => s + m.totalInvestments, 0);
+  const yearTotalRecovered = monthlyData.reduce((s, m) => s + m.totalRecovered, 0);
 
   if (loading) {
     return (
@@ -92,7 +93,7 @@ const MonthlyOverviewPage = () => {
             className="w-full sm:w-auto rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             aria-label="Select year"
           >
-            {[CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => (
+            {Array.from({ length: CURRENT_YEAR - 2026 + 2 }, (_, i) => 2026 + i).map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
@@ -104,9 +105,9 @@ const MonthlyOverviewPage = () => {
       </div>
 
       {/* Year Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Income</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Revenue</p>
           <p className="text-xl font-bold text-success mt-1">{formatCurrency(yearTotalIncome)}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
@@ -118,14 +119,18 @@ const MonthlyOverviewPage = () => {
           <p className="text-xl font-bold text-primary mt-1">{formatCurrency(yearTotalInvestments)}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Recovered</p>
+          <p className="text-xl font-bold text-success mt-1">{formatCurrency(yearTotalRecovered)}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Net Profit</p>
           <p className={cn(
             "text-xl font-bold mt-1",
-            yearTotalIncome - yearTotalExpenses - yearTotalInvestments >= 0
+            yearTotalIncome - yearTotalExpenses - yearTotalInvestments + yearTotalRecovered >= 0
               ? "text-success"
               : "text-destructive"
           )}>
-            {formatCurrency(yearTotalIncome - yearTotalExpenses - yearTotalInvestments)}
+            {formatCurrency(yearTotalIncome - yearTotalExpenses - yearTotalInvestments + yearTotalRecovered)}
           </p>
         </div>
       </div>
@@ -138,17 +143,18 @@ const MonthlyOverviewPage = () => {
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Month</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Opening (B/D)</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Income</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Revenue</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Expenses</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Investments</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Recovered</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Closing (C/D)</th>
                 <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
               </tr>
             </thead>
             <tbody>
               {monthlyData.map((m) => {
-                const profit = m.totalIncome - m.totalExpenses - m.totalInvestments;
-                const hasData = m.totalIncome > 0 || m.totalExpenses > 0 || m.totalInvestments > 0;
+                const profit = m.totalIncome - m.totalExpenses - m.totalInvestments + m.totalRecovered;
+                const hasData = m.totalIncome > 0 || m.totalExpenses > 0 || m.totalInvestments > 0 || m.totalRecovered > 0;
                 const isManual = monthlyBalances.some(
                   (b) => b.month === m.month && b.year === m.year
                 );
@@ -182,6 +188,9 @@ const MonthlyOverviewPage = () => {
                     </td>
                     <td className="px-4 py-3 text-right text-primary font-medium">
                       {m.totalInvestments > 0 ? `-${formatCurrency(m.totalInvestments)}` : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-right text-success font-medium">
+                      {m.totalRecovered > 0 ? `+${formatCurrency(m.totalRecovered)}` : "-"}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-foreground">
                       {formatCurrency(m.closingBalance)}

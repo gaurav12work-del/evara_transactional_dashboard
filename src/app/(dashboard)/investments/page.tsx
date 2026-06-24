@@ -26,6 +26,7 @@ const InvestmentsPage = () => {
   const [filterPropertyId, setFilterPropertyId] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"latest" | "oldest">("latest");
 
   const supabase = createClient();
 
@@ -122,12 +123,12 @@ const InvestmentsPage = () => {
   };
 
   // Computed values
-  const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
   const activeInvestments = investments.filter((inv) => inv.status === "active");
   const writtenOffInvestments = investments.filter((inv) => inv.status === "written_off");
   const totalActive = activeInvestments.reduce((sum, inv) => sum + inv.amount, 0);
   const totalWrittenOff = writtenOffInvestments.reduce((sum, inv) => sum + inv.amount, 0);
-  const totalIncomeEarned = totalWrittenOff;
+  const totalInvested = totalActive - totalWrittenOff;
+  const totalIncomeEarned = totalActive - totalWrittenOff;
 
   // Investment by property
   const investmentByProperty = properties
@@ -148,13 +149,38 @@ const InvestmentsPage = () => {
       .reduce((sum, inv) => sum + inv.amount, 0),
   }));
 
+  // Written off by property
+  const writtenOffByProperty = properties
+    .map((p) => ({
+      name: p.name,
+      total: writtenOffInvestments
+        .filter((inv) => inv.property_id === p.id)
+        .reduce((sum, inv) => sum + inv.amount, 0),
+    }))
+    .filter((p) => p.total > 0);
+
+  // Written off by category (partner)
+  const writtenOffUniqueCategories = [...new Set(writtenOffInvestments.map((inv) => inv.category))];
+  const writtenOffByCategory = writtenOffUniqueCategories.map((cat) => ({
+    name: cat,
+    total: writtenOffInvestments
+      .filter((inv) => inv.category === cat)
+      .reduce((sum, inv) => sum + inv.amount, 0),
+  }));
+
   // Filtered list
-  const filteredInvestments = investments.filter((inv) => {
-    if (filterPropertyId !== "all" && inv.property_id !== filterPropertyId) return false;
-    if (filterCategory !== "all" && inv.category !== filterCategory) return false;
-    if (filterStatus !== "all" && inv.status !== filterStatus) return false;
-    return true;
-  });
+  const filteredInvestments = investments
+    .filter((inv) => {
+      if (filterPropertyId !== "all" && inv.property_id !== filterPropertyId) return false;
+      if (filterCategory !== "all" && inv.category !== filterCategory) return false;
+      if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === "latest" ? dateB - dateA : dateA - dateB;
+    });
 
   if (loading) {
     return (
@@ -173,15 +199,6 @@ const InvestmentsPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Total Invested
-          </p>
-          <p className="text-xl font-bold text-foreground mt-1">
-            {formatCurrency(totalInvested)}
-          </p>
-          <p className="text-xs text-muted-foreground">All time</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Active Investments
           </p>
           <p className="text-xl font-bold text-foreground mt-1">
@@ -193,19 +210,28 @@ const InvestmentsPage = () => {
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Written Off
           </p>
-          <p className="text-xl font-bold text-foreground mt-1">
+          <p className="text-xl font-bold text-destructive mt-1">
             {formatCurrency(totalWrittenOff)}
           </p>
-          <p className="text-xs text-muted-foreground">Lost / disposed</p>
+          <p className="text-xs text-muted-foreground">Recovered / deducted</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Total Invested
+          </p>
+          <p className="text-xl font-bold text-primary mt-1">
+            {formatCurrency(totalInvested)}
+          </p>
+          <p className="text-xs text-muted-foreground">Active − Written Off</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Total Income Earned
           </p>
-          <p className="text-xl font-bold text-foreground mt-1">
+          <p className="text-xl font-bold text-success mt-1">
             {formatCurrency(totalIncomeEarned)}
           </p>
-          <p className="text-xs text-muted-foreground">All time</p>
+          <p className="text-xs text-muted-foreground">Active − Written Off</p>
         </div>
       </div>
 
@@ -389,6 +415,49 @@ const InvestmentsPage = () => {
         </div>
       </div>
 
+      {/* Written Off by Property & Partner */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">
+            Written Off by Property
+          </h2>
+          {writtenOffByProperty.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No written-off investments yet</p>
+          ) : (
+            <div className="space-y-3">
+              {writtenOffByProperty.map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <span className="text-sm text-foreground">{item.name}</span>
+                  <span className="text-sm font-semibold text-destructive">
+                    {formatCurrency(item.total)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">
+            Written Off by Partner
+          </h2>
+          {writtenOffByCategory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No written-off investments yet</p>
+          ) : (
+            <div className="space-y-3">
+              {writtenOffByCategory.map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <span className="text-sm text-foreground">{item.name}</span>
+                  <span className="text-sm font-semibold text-destructive">
+                    {formatCurrency(item.total)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Investments Table */}
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         {/* Table header with count and filters */}
@@ -432,6 +501,15 @@ const InvestmentsPage = () => {
               <option value="all">All statuses</option>
               <option value="active">Active</option>
               <option value="written_off">Written Off</option>
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as "latest" | "oldest")}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Sort order"
+            >
+              <option value="latest">Latest first</option>
+              <option value="oldest">Oldest first</option>
             </select>
           </div>
         </div>

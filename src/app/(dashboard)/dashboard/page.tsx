@@ -13,6 +13,7 @@ import {
   ArrowDownRight,
   IndianRupee,
   Package,
+  Download,
 } from "lucide-react";
 import {
   BarChart,
@@ -143,6 +144,139 @@ const DashboardPage = () => {
 
   const recentTransactions = transactions.slice(0, 5);
 
+  const formatDateForCSV = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const handleExportCSV = () => {
+    const rows: string[][] = [];
+    const selectedPropertyName = selectedPropertyId
+      ? properties.find((p) => p.id === selectedPropertyId)?.name || "Unknown"
+      : "All Properties";
+
+    const today = new Date();
+    const exportDate = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
+
+    // Summary section
+    rows.push(["EVARAA Dashboard Export"]);
+    rows.push(["Property", selectedPropertyName]);
+    rows.push(["Export Date", exportDate]);
+    rows.push([]);
+
+    // Current month stats
+    rows.push(["--- Current Month Summary ---"]);
+    rows.push(["Opening Balance", currentMonth.openingBalance.toString()]);
+    rows.push(["Income", currentMonth.totalIncome.toString()]);
+    rows.push(["Expenses", currentMonth.totalExpenses.toString()]);
+    rows.push(["Investments", currentMonth.totalInvestments.toString()]);
+    rows.push(["Closing Balance", currentMonth.closingBalance.toString()]);
+    rows.push([]);
+
+    // Monthly breakdown (Bar Chart data)
+    rows.push(["--- Monthly Breakdown (Bar Chart) ---"]);
+    rows.push(["Month", "Income", "Expenses", "Investments", "Closing Balance"]);
+    chartData.forEach((d) => {
+      rows.push([d.name, d.income.toString(), d.expenses.toString(), d.investments.toString(), d.balance.toString()]);
+    });
+    rows.push([]);
+
+    // Balance trend (Line Chart data)
+    rows.push(["--- Balance Trend (Line Chart) ---"]);
+    rows.push(["Month", "Closing Balance"]);
+    chartData.forEach((d) => {
+      rows.push([d.name, d.balance.toString()]);
+    });
+    rows.push([]);
+
+    // Expense breakdown by category (Pie Chart)
+    const totalExpenseAmount = expenseCategoryData.reduce((sum, d) => sum + d.value, 0);
+    rows.push(["--- Expense Breakdown - Pie Chart ---"]);
+    rows.push(["Category", "Amount", "Percentage (%)"]);
+    expenseCategoryData.forEach((d) => {
+      const pct = totalExpenseAmount > 0 ? ((d.value / totalExpenseAmount) * 100).toFixed(1) : "0";
+      rows.push([d.name, d.value.toString(), pct]);
+    });
+    if (totalExpenseAmount > 0) {
+      rows.push(["TOTAL", totalExpenseAmount.toString(), "100"]);
+    }
+    rows.push([]);
+
+    // Income breakdown by category (Pie Chart)
+    const totalIncomeAmount = incomeCategoryData.reduce((sum, d) => sum + d.value, 0);
+    rows.push(["--- Income Breakdown - Pie Chart ---"]);
+    rows.push(["Category", "Amount", "Percentage (%)"]);
+    incomeCategoryData.forEach((d) => {
+      const pct = totalIncomeAmount > 0 ? ((d.value / totalIncomeAmount) * 100).toFixed(1) : "0";
+      rows.push([d.name, d.value.toString(), pct]);
+    });
+    if (totalIncomeAmount > 0) {
+      rows.push(["TOTAL", totalIncomeAmount.toString(), "100"]);
+    }
+    rows.push([]);
+
+    // Investment breakdown by category (Pie Chart)
+    const totalInvestmentAmount = investmentCategoryData.reduce((sum, d) => sum + d.value, 0);
+    rows.push(["--- Investment Breakdown - Pie Chart ---"]);
+    rows.push(["Category", "Amount", "Percentage (%)"]);
+    investmentCategoryData.forEach((d) => {
+      const pct = totalInvestmentAmount > 0 ? ((d.value / totalInvestmentAmount) * 100).toFixed(1) : "0";
+      rows.push([d.name, d.value.toString(), pct]);
+    });
+    if (totalInvestmentAmount > 0) {
+      rows.push(["TOTAL", totalInvestmentAmount.toString(), "100"]);
+    }
+    rows.push([]);
+
+    // All transactions
+    rows.push(["--- All Transactions ---"]);
+    rows.push(["Date", "Type", "Category", "Property", "Amount", "Description"]);
+    transactions.forEach((tx) => {
+      const propName = properties.find((p) => p.id === tx.property_id)?.name || "Unknown";
+      rows.push([
+        formatDateForCSV(tx.date),
+        tx.type,
+        tx.category,
+        propName,
+        tx.amount.toString(),
+        tx.description || "",
+      ]);
+    });
+    rows.push([]);
+
+    // All investments
+    rows.push(["--- All Investments ---"]);
+    rows.push(["Date", "Category", "Property", "Amount", "Status", "Description"]);
+    investments.forEach((inv) => {
+      const propName = properties.find((p) => p.id === inv.property_id)?.name || "Unknown";
+      rows.push([
+        formatDateForCSV(inv.date),
+        inv.category,
+        propName,
+        inv.amount.toString(),
+        inv.status === "active" ? "Active" : "Written Off",
+        inv.description || "",
+      ]);
+    });
+
+    const csvContent = rows
+      .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `evaraa-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -165,10 +299,20 @@ const DashboardPage = () => {
             Overview of your property finances
           </p>
         </div>
-        <PropertySwitcher
-          selectedPropertyId={selectedPropertyId}
-          onPropertyChange={setSelectedPropertyId}
-        />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            aria-label="Export to CSV"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+          <PropertySwitcher
+            selectedPropertyId={selectedPropertyId}
+            onPropertyChange={setSelectedPropertyId}
+          />
+        </div>
       </div>
 
       {/* Stats Cards */}

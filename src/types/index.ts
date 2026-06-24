@@ -81,5 +81,6 @@ export interface ComputedMonthlyData {
   totalIncome: number;
   totalExpenses: number;
   totalInvestments: number;
+  totalRecovered: number;
   closingBalance: number;
 }

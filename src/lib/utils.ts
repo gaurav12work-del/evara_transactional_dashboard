@@ -88,12 +88,15 @@ export const computeMonthlyData = (
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const totalInvestments = monthInvestments.reduce(
-      (sum, inv) => sum + inv.amount,
-      0
-    );
+    const totalInvestments = monthInvestments
+      .filter((inv) => inv.status === "active")
+      .reduce((sum, inv) => sum + inv.amount, 0);
 
-    const closingBalance = openingBalance + totalIncome - totalExpenses - totalInvestments;
+    const totalRecovered = monthInvestments
+      .filter((inv) => inv.status === "written_off")
+      .reduce((sum, inv) => sum + inv.amount, 0);
+
+    const closingBalance = openingBalance + totalIncome - totalExpenses - totalInvestments + totalRecovered;
 
     results.push({
       month: currentMonth,
@@ -102,6 +105,7 @@ export const computeMonthlyData = (
       totalIncome,
       totalExpenses,
       totalInvestments,
+      totalRecovered,
       closingBalance,
     });
 
@@ -177,6 +181,7 @@ export const getCurrentMonthData = (
       totalIncome: 0,
       totalExpenses: 0,
       totalInvestments: 0,
+      totalRecovered: 0,
       closingBalance: 0,
     }
   );

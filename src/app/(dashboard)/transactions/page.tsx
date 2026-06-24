@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Property, Transaction, Investment, ExpenseCategory, IncomeCategory, InvestmentCategory } from "@/types";
+import { Property, Transaction, Investment, ExpenseCategory, IncomeCategory, InvestmentCategory, InvestmentStatus } from "@/types";
 import { formatCurrency, getMonthName } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 
 type EntryType = "income" | "expense" | "investment";
 
@@ -16,6 +16,7 @@ interface UnifiedEntry {
   amount: number;
   description: string;
   date: string;
+  status?: InvestmentStatus;
   table: "transactions" | "investments";
 }
 
@@ -34,13 +35,16 @@ const TransactionsPage = () => {
   const [formPropertyId, setFormPropertyId] = useState("");
   const [formAmount, setFormAmount] = useState("");
   const [formDescription, setFormDescription] = useState("");
+  const [formStatus, setFormStatus] = useState<InvestmentStatus>("active");
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<UnifiedEntry | null>(null);
 
   // Filter state
   const [filterType, setFilterType] = useState<string>("all");
   const [filterPropertyId, setFilterPropertyId] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"latest" | "oldest">("latest");
 
   const supabase = createClient();
 
@@ -90,6 +94,7 @@ const TransactionsPage = () => {
           amount: inv.amount,
           description: inv.description,
           date: inv.date,
+          status: inv.status,
           table: "investments",
         });
       });
@@ -122,7 +127,22 @@ const TransactionsPage = () => {
     setFormPropertyId("");
     setFormAmount("");
     setFormDescription("");
+    setFormStatus("active");
     setFormError(null);
+    setEditingEntry(null);
+  };
+
+  const handleEditClick = (entry: UnifiedEntry) => {
+    setEditingEntry(entry);
+    setFormDate(entry.date);
+    setFormType(entry.type);
+    setFormCategory(entry.category);
+    setFormPropertyId(entry.property_id);
+    setFormAmount(entry.amount.toString());
+    setFormDescription(entry.description);
+    setFormStatus(entry.status || "active");
+    setFormError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleAddTransaction = async () => {
@@ -154,33 +174,58 @@ const TransactionsPage = () => {
       return;
     }
 
-    let insertError;
+    let operationError;
 
-    if (formType === "investment") {
-      const { error } = await supabase.from("investments").insert({
+    if (editingEntry) {
+      const updateData = {
         property_id: formPropertyId,
-        user_id: user.id,
         category: formCategory,
         amount: parseFloat(formAmount),
         description: formDescription.trim(),
         date: formDate,
-      });
-      insertError = error;
+      };
+
+      if (editingEntry.table === "investments") {
+        const { error } = await supabase
+          .from("investments")
+          .update({ ...updateData, status: formStatus })
+          .eq("id", editingEntry.id);
+        operationError = error;
+      } else {
+        const { error } = await supabase
+          .from("transactions")
+          .update({ ...updateData, type: formType as "income" | "expense" })
+          .eq("id", editingEntry.id);
+        operationError = error;
+      }
     } else {
-      const { error } = await supabase.from("transactions").insert({
-        property_id: formPropertyId,
-        user_id: user.id,
-        type: formType,
-        category: formCategory,
-        amount: parseFloat(formAmount),
-        description: formDescription.trim(),
-        date: formDate,
-      });
-      insertError = error;
+      if (formType === "investment") {
+        const { error } = await supabase.from("investments").insert({
+          property_id: formPropertyId,
+          user_id: user.id,
+          category: formCategory,
+          amount: parseFloat(formAmount),
+          status: formStatus,
+          description: formDescription.trim(),
+          date: formDate,
+        });
+        operationError = error;
+      } else {
+        const { error } = await supabase.from("transactions").insert({
+          property_id: formPropertyId,
+          user_id: user.id,
+          type: formType,
+          category: formCategory,
+          amount: parseFloat(formAmount),
+          description: formDescription.trim(),
+          date: formDate,
+        });
+        operationError = error;
+      }
     }
 
-    if (insertError) {
-      setFormError(insertError.message);
+    if (operationError) {
+      setFormError(operationError.message);
       setSubmitting(false);
       return;
     }
@@ -202,15 +247,21 @@ const TransactionsPage = () => {
     return properties.find((p) => p.id === propertyId)?.name || "Unknown";
   };
 
-  const filteredEntries = entries.filter((entry) => {
-    if (filterType !== "all" && entry.type !== filterType) return false;
-    if (filterPropertyId !== "all" && entry.property_id !== filterPropertyId) return false;
-    if (filterMonth !== "all") {
-      const entryMonth = new Date(entry.date).getMonth() + 1;
-      if (entryMonth !== parseInt(filterMonth)) return false;
-    }
-    return true;
-  });
+  const filteredEntries = entries
+    .filter((entry) => {
+      if (filterType !== "all" && entry.type !== filterType) return false;
+      if (filterPropertyId !== "all" && entry.property_id !== filterPropertyId) return false;
+      if (filterMonth !== "all") {
+        const entryMonth = new Date(entry.date).getMonth() + 1;
+        if (entryMonth !== parseInt(filterMonth)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === "latest" ? dateB - dateA : dateA - dateB;
+    });
 
   if (loading) {
     return (
@@ -228,7 +279,7 @@ const TransactionsPage = () => {
       {/* Inline Add Form */}
       <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-          Add a Transaction
+          {editingEntry ? "Edit Transaction" : "Add a Transaction"}
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
@@ -343,6 +394,24 @@ const TransactionsPage = () => {
           </div>
         </div>
 
+        {/* Status - only for investment type */}
+        {formType === "investment" && (
+          <div className="mt-3 max-w-xs">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Investment Status
+            </label>
+            <select
+              value={formStatus}
+              onChange={(e) => setFormStatus(e.target.value as InvestmentStatus)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Select investment status"
+            >
+              <option value="active">Active</option>
+              <option value="written_off">Written Off</option>
+            </select>
+          </div>
+        )}
+
         {formError && (
           <div className="mt-3 rounded-md bg-destructive/10 p-2.5 text-sm text-destructive" role="alert">
             {formError}
@@ -354,16 +423,16 @@ const TransactionsPage = () => {
             onClick={handleAddTransaction}
             disabled={submitting}
             className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="Add transaction"
+            aria-label={editingEntry ? "Update transaction" : "Add transaction"}
           >
-            + Add transaction
+            {editingEntry ? "Update transaction" : "+ Add transaction"}
           </button>
           <button
             onClick={handleClear}
             className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-            aria-label="Clear form"
+            aria-label={editingEntry ? "Cancel editing" : "Clear form"}
           >
-            Clear
+            {editingEntry ? "Cancel" : "Clear"}
           </button>
         </div>
       </div>
@@ -413,6 +482,15 @@ const TransactionsPage = () => {
                 </option>
               ))}
             </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as "latest" | "oldest")}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Sort order"
+            >
+              <option value="latest">Latest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
           </div>
         </div>
 
@@ -445,6 +523,9 @@ const TransactionsPage = () => {
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase text-xs">
                     Description
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground uppercase text-xs">
+                    Status
                   </th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground uppercase text-xs">
                   </th>
@@ -497,14 +578,40 @@ const TransactionsPage = () => {
                     <td className="px-4 py-3 text-muted-foreground">
                       {entry.description || "-"}
                     </td>
+                    <td className="px-4 py-3">
+                      {entry.type === "investment" && entry.status ? (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            entry.status === "active"
+                              ? "bg-success/10 text-success"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {entry.status === "active" ? "Active" : "Written Off"}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleDelete(entry)}
-                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        aria-label="Delete transaction"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEditClick(entry)}
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                          aria-label="Edit transaction"
+                          tabIndex={0}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(entry)}
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          aria-label="Delete transaction"
+                          tabIndex={0}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

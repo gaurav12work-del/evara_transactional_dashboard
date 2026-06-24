@@ -29,9 +29,6 @@ const PropertySwitcher = ({
 
       if (data) {
         setProperties(data);
-        if (!selectedPropertyId && data.length > 0) {
-          onPropertyChange(data[0].id);
-        }
       }
       setLoading(false);
     };
