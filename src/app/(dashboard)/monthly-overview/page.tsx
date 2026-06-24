@@ -71,8 +71,47 @@ const MonthlyOverviewPage = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-96 animate-pulse rounded-lg bg-muted" />
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-64 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="flex gap-3">
+            <div className="h-10 w-20 animate-pulse rounded-md bg-muted" />
+            <div className="h-10 w-48 animate-pulse rounded-lg bg-muted" />
+          </div>
+        </div>
+        {/* Summary cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+              <div className="h-6 w-24 animate-pulse rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+        {/* Table skeleton */}
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="border-b border-border bg-muted/50 px-4 py-3 flex gap-8">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="h-4 w-16 animate-pulse rounded bg-muted" />
+            ))}
+          </div>
+          <div className="divide-y divide-border">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="flex items-center gap-6 px-4 py-3">
+                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

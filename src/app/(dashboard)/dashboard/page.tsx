@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Property, Transaction, Investment, MonthlyBalance } from "@/types";
 import { formatCurrency, getCurrentMonthData, computeMonthlyData, getShortMonthName } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
   IndianRupee,
   Package,
   Download,
+  FileText,
 } from "lucide-react";
 import {
   BarChart,
@@ -40,6 +41,8 @@ const DashboardPage = () => {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [monthlyBalances, setMonthlyBalances] = useState<MonthlyBalance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const dashboardRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
@@ -277,21 +280,134 @@ const DashboardPage = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportPDF = async () => {
+    if (!dashboardRef.current) return;
+    setExporting(true);
+
+    try {
+      const html2canvas = (await import("html2canvas-pro")).default;
+      const { jsPDF } = await import("jspdf");
+
+      const canvas = await html2canvas(dashboardRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#faf6f0",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      const pdfWidth = 297;
+      const pdfPageHeight = 420;
+      const ratio = pdfWidth / imgWidth;
+      const scaledHeight = imgHeight * ratio;
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a3",
+      });
+
+      let heightLeft = scaledHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, scaledHeight);
+      heightLeft -= pdfPageHeight;
+
+      while (heightLeft > 0) {
+        position -= pdfPageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, scaledHeight);
+        heightLeft -= pdfPageHeight;
+      }
+
+      const selectedPropertyName = selectedPropertyId
+        ? properties.find((p) => p.id === selectedPropertyId)?.name || "Unknown"
+        : "All Properties";
+
+      pdf.save(`evaraa-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.pdf`);
+    } catch (error) {
+      console.error("PDF export failed:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-8 w-36 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-52 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-28 animate-pulse rounded-lg bg-muted" />
+            <div className="h-10 w-48 animate-pulse rounded-lg bg-muted" />
+          </div>
+        </div>
+        {/* Stats cards skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-32 animate-pulse rounded-lg bg-muted" />
+            <div key={i} className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-4 animate-pulse rounded bg-muted" />
+              </div>
+              <div className="h-7 w-24 animate-pulse rounded bg-muted" />
+            </div>
           ))}
+        </div>
+        {/* Charts skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm space-y-4">
+            <div className="h-5 w-36 animate-pulse rounded bg-muted" />
+            <div className="h-[250px] animate-pulse rounded-lg bg-muted/50" />
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm space-y-4">
+            <div className="h-5 w-36 animate-pulse rounded bg-muted" />
+            <div className="h-[250px] flex items-center justify-center">
+              <div className="h-36 w-36 animate-pulse rounded-full bg-muted/50" />
+            </div>
+          </div>
+        </div>
+        {/* Pie charts skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm space-y-4">
+              <div className="h-5 w-32 animate-pulse rounded bg-muted" />
+              <div className="h-[200px] flex items-center justify-center">
+                <div className="h-32 w-32 animate-pulse rounded-full bg-muted/50" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Recent transactions skeleton */}
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm space-y-4">
+          <div className="h-5 w-40 animate-pulse rounded bg-muted" />
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 animate-pulse rounded-full bg-muted" />
+                  <div className="space-y-1.5">
+                    <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                    <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                  </div>
+                </div>
+                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={dashboardRef}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
@@ -299,7 +415,16 @@ const DashboardPage = () => {
             Overview of your property finances
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            aria-label="Export to PDF with charts"
+          >
+            <FileText className="h-4 w-4" />
+            {exporting ? "Exporting..." : "Export PDF"}
+          </button>
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"

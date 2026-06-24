@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Property, Transaction, Investment, ExpenseCategory, IncomeCategory, InvestmentCategory, InvestmentStatus } from "@/types";
 import { formatCurrency, getMonthName } from "@/lib/utils";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 
 type EntryType = "income" | "expense" | "investment";
 
@@ -45,6 +45,8 @@ const TransactionsPage = () => {
   const [filterPropertyId, setFilterPropertyId] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "oldest">("latest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const supabase = createClient();
 
@@ -263,11 +265,59 @@ const TransactionsPage = () => {
       return sortOrder === "latest" ? dateB - dateA : dateA - dateB;
     });
 
+  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
+  const paginatedEntries = filteredEntries.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-96 animate-pulse rounded-lg bg-muted" />
+        {/* Form skeleton */}
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm space-y-4">
+          <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="space-y-1">
+                <div className="h-3 w-12 animate-pulse rounded bg-muted" />
+                <div className="h-9 animate-pulse rounded-md bg-muted" />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <div className="h-9 w-32 animate-pulse rounded-lg bg-muted" />
+            <div className="h-9 w-16 animate-pulse rounded-lg bg-muted" />
+          </div>
+        </div>
+        {/* Table skeleton */}
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+            <div className="flex gap-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-8 w-24 animate-pulse rounded-md bg-muted" />
+              ))}
+            </div>
+          </div>
+          <div className="divide-y divide-border">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
+                <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-16 animate-pulse rounded bg-muted ml-auto" />
+                <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                <div className="flex gap-1">
+                  <div className="h-7 w-7 animate-pulse rounded-lg bg-muted" />
+                  <div className="h-7 w-7 animate-pulse rounded-lg bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -447,7 +497,7 @@ const TransactionsPage = () => {
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}
               className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Filter by type"
             >
@@ -458,7 +508,7 @@ const TransactionsPage = () => {
             </select>
             <select
               value={filterPropertyId}
-              onChange={(e) => setFilterPropertyId(e.target.value)}
+              onChange={(e) => { setFilterPropertyId(e.target.value); setCurrentPage(1); }}
               className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Filter by property"
             >
@@ -471,7 +521,7 @@ const TransactionsPage = () => {
             </select>
             <select
               value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
+              onChange={(e) => { setFilterMonth(e.target.value); setCurrentPage(1); }}
               className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Filter by month"
             >
@@ -484,7 +534,7 @@ const TransactionsPage = () => {
             </select>
             <select
               value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as "latest" | "oldest")}
+              onChange={(e) => { setSortOrder(e.target.value as "latest" | "oldest"); setCurrentPage(1); }}
               className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               aria-label="Sort order"
             >
@@ -532,7 +582,7 @@ const TransactionsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredEntries.map((entry) => (
+                {paginatedEntries.map((entry) => (
                   <tr
                     key={`${entry.table}-${entry.id}`}
                     className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
@@ -617,6 +667,38 @@ const TransactionsPage = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+            <p className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredEntries.length)} of {filteredEntries.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Prev
+              </button>
+              <span className="text-sm text-foreground font-medium">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
