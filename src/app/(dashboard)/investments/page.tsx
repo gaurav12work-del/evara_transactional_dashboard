@@ -129,7 +129,7 @@ const InvestmentsPage = () => {
   const writtenOffInvestments = investments.filter((inv) => inv.status === "written_off");
   const totalActive = activeInvestments.reduce((sum, inv) => sum + inv.amount, 0);
   const totalWrittenOff = writtenOffInvestments.reduce((sum, inv) => sum + inv.amount, 0);
-  const totalInvested = totalActive - totalWrittenOff;
+  const currentActiveValue = totalActive - totalWrittenOff;
   const totalIncomeEarned = totalActive - totalWrittenOff;
 
   // Investment by property
@@ -271,12 +271,12 @@ const InvestmentsPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Active Investments
+            Total Invested
           </p>
           <p className="text-xl font-bold text-foreground mt-1">
             {formatCurrency(totalActive)}
           </p>
-          <p className="text-xs text-muted-foreground">Currently active</p>
+          <p className="text-xs text-muted-foreground">All active entries</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -285,14 +285,14 @@ const InvestmentsPage = () => {
           <p className="text-xl font-bold text-destructive mt-1">
             {formatCurrency(totalWrittenOff)}
           </p>
-          <p className="text-xs text-muted-foreground">Recovered / deducted</p>
+          <p className="text-xs text-muted-foreground">Deducted from active</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Total Invested
+            Active Investments
           </p>
           <p className="text-xl font-bold text-primary mt-1">
-            {formatCurrency(totalInvested)}
+            {formatCurrency(currentActiveValue)}
           </p>
           <p className="text-xs text-muted-foreground">Active − Written Off</p>
         </div>
