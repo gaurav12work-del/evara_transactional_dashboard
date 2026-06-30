@@ -3,16 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Property, Transaction, Investment, MonthlyBalance } from "@/types";
-import { formatCurrency, getCurrentMonthData, computeMonthlyData, getShortMonthName } from "@/lib/utils";
+import { formatCurrency, computeMonthlyData, getShortMonthName } from "@/lib/utils";
 import PropertySwitcher from "@/components/property-switcher";
 import {
   TrendingUp,
   TrendingDown,
-  Wallet,
   ArrowUpRight,
   ArrowDownRight,
   IndianRupee,
   Package,
+  PackageMinus,
   Download,
   FileText,
 } from "lucide-react";
@@ -77,8 +77,6 @@ const DashboardPage = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const currentMonth = getCurrentMonthData(transactions, investments, monthlyBalances);
 
   const now = new Date();
   const startMonth = now.getMonth() >= 5 ? now.getMonth() - 4 : 1;
@@ -147,6 +145,20 @@ const DashboardPage = () => {
 
   const recentTransactions = transactions.slice(0, 5);
 
+  const totalRevenue = transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpenses = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalInvestment = investments
+    .filter((inv) => inv.status === "active")
+    .reduce((sum, inv) => sum + inv.amount, 0);
+  const totalRecovered = investments
+    .filter((inv) => inv.status === "written_off")
+    .reduce((sum, inv) => sum + inv.amount, 0);
+  const totalProfit = totalRevenue - totalExpenses;
+
   const formatDateForCSV = (dateStr: string) => {
     const d = new Date(dateStr);
     const day = String(d.getDate()).padStart(2, "0");
@@ -170,13 +182,13 @@ const DashboardPage = () => {
     rows.push(["Export Date", exportDate]);
     rows.push([]);
 
-    // Current month stats
-    rows.push(["--- Current Month Summary ---"]);
-    rows.push(["Opening Balance", currentMonth.openingBalance.toString()]);
-    rows.push(["Income", currentMonth.totalIncome.toString()]);
-    rows.push(["Expenses", currentMonth.totalExpenses.toString()]);
-    rows.push(["Investments", currentMonth.totalInvestments.toString()]);
-    rows.push(["Closing Balance", currentMonth.closingBalance.toString()]);
+    // Totals summary
+    rows.push(["--- Totals Summary ---"]);
+    rows.push(["Total Revenue", totalRevenue.toString()]);
+    rows.push(["Total Expenses", totalExpenses.toString()]);
+    rows.push(["Total Investment", totalInvestment.toString()]);
+    rows.push(["Total Recovered", totalRecovered.toString()]);
+    rows.push(["Profit (Revenue - Expenses)", totalProfit.toString()]);
     rows.push([]);
 
     // Monthly breakdown (Bar Chart data)
@@ -444,54 +456,54 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Opening</p>
-            <Wallet className="h-4 w-4 text-primary" />
-          </div>
-          <p className="mt-2 text-xl font-bold text-foreground">
-            {formatCurrency(currentMonth.openingBalance)}
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Income</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Revenue</p>
             <ArrowUpRight className="h-4 w-4 text-success" />
           </div>
           <p className="mt-2 text-xl font-bold text-success">
-            {formatCurrency(currentMonth.totalIncome)}
+            {formatCurrency(totalRevenue)}
           </p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Expenses</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Expenses</p>
             <ArrowDownRight className="h-4 w-4 text-destructive" />
           </div>
           <p className="mt-2 text-xl font-bold text-destructive">
-            {formatCurrency(currentMonth.totalExpenses)}
+            {formatCurrency(totalExpenses)}
           </p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Investments</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Investment</p>
             <Package className="h-4 w-4 text-primary" />
           </div>
           <p className="mt-2 text-xl font-bold text-primary">
-            {formatCurrency(currentMonth.totalInvestments)}
+            {formatCurrency(totalInvestment)}
           </p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Closing</p>
-            <IndianRupee className="h-4 w-4 text-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Recovered</p>
+            <PackageMinus className="h-4 w-4 text-muted-foreground" />
           </div>
           <p className="mt-2 text-xl font-bold text-foreground">
-            {formatCurrency(currentMonth.closingBalance)}
+            {formatCurrency(totalRecovered)}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Profit</p>
+            <IndianRupee className="h-4 w-4 text-foreground" />
+          </div>
+          <p className={`mt-2 text-xl font-bold ${totalProfit >= 0 ? "text-success" : "text-destructive"}`}>
+            {formatCurrency(totalProfit)}
           </p>
           <p className="mt-1 flex items-center gap-1 text-xs">
-            {currentMonth.closingBalance >= currentMonth.openingBalance ? (
+            {totalProfit >= 0 ? (
               <>
                 <TrendingUp className="h-3 w-3 text-success" />
                 <span className="text-success">Profit</span>
@@ -503,6 +515,7 @@ const DashboardPage = () => {
               </>
             )}
           </p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">Revenue &minus; Expenses</p>
         </div>
       </div>
 

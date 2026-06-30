@@ -2,25 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Property, Investment, InvestmentCategory, InvestmentStatus } from "@/types";
+import { Property, Investment } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 
 const InvestmentsPage = () => {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [categories, setCategories] = useState<InvestmentCategory[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Inline form state
-  const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
-  const [formPropertyId, setFormPropertyId] = useState("");
-  const [formCategory, setFormCategory] = useState("");
-  const [formAmount, setFormAmount] = useState("");
-  const [formStatus, setFormStatus] = useState<InvestmentStatus>("active");
-  const [formDescription, setFormDescription] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   // Filter state
   const [filterPropertyId, setFilterPropertyId] = useState<string>("all");
@@ -38,16 +27,13 @@ const InvestmentsPage = () => {
     const [
       { data: propsData },
       { data: invData },
-      { data: catData },
     ] = await Promise.all([
       supabase.from("properties").select("*").order("name"),
       supabase.from("investments").select("*").order("date", { ascending: false }),
-      supabase.from("investment_categories").select("*").order("name"),
     ]);
 
     if (propsData) setProperties(propsData);
     if (invData) setInvestments(invData);
-    if (catData) setCategories(catData);
 
     setLoading(false);
   }, []);
@@ -55,62 +41,6 @@ const InvestmentsPage = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const handleClear = () => {
-    setFormDate(new Date().toISOString().split("T")[0]);
-    setFormPropertyId("");
-    setFormCategory("");
-    setFormAmount("");
-    setFormStatus("active");
-    setFormDescription("");
-    setFormError(null);
-  };
-
-  const handleAddInvestment = async () => {
-    setFormError(null);
-
-    if (!formPropertyId) {
-      setFormError("Please select a property");
-      return;
-    }
-    if (!formCategory) {
-      setFormError("Please select a category");
-      return;
-    }
-    if (!formAmount || parseFloat(formAmount) <= 0) {
-      setFormError("Amount must be greater than 0");
-      return;
-    }
-
-    setSubmitting(true);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setFormError("You must be logged in");
-      setSubmitting(false);
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("investments").insert({
-      property_id: formPropertyId,
-      user_id: user.id,
-      category: formCategory,
-      amount: parseFloat(formAmount),
-      status: formStatus,
-      description: formDescription.trim(),
-      date: formDate,
-    });
-
-    if (insertError) {
-      setFormError(insertError.message);
-      setSubmitting(false);
-      return;
-    }
-
-    handleClear();
-    setSubmitting(false);
-    fetchData();
-  };
 
   const handleDelete = async (id: string) => {
     const confirmed = window.confirm("Delete this investment?");
@@ -204,23 +134,6 @@ const InvestmentsPage = () => {
             </div>
           ))}
         </div>
-        {/* Form skeleton */}
-        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm space-y-4">
-          <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="space-y-1">
-                <div className="h-3 w-12 animate-pulse rounded bg-muted" />
-                <div className="h-9 animate-pulse rounded-md bg-muted" />
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-3 items-end">
-            <div className="flex-1 h-9 animate-pulse rounded-md bg-muted" />
-            <div className="h-9 w-32 animate-pulse rounded-lg bg-muted" />
-            <div className="h-9 w-16 animate-pulse rounded-lg bg-muted" />
-          </div>
-        </div>
         {/* Breakdown skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {[...Array(2)].map((_, i) => (
@@ -305,143 +218,6 @@ const InvestmentsPage = () => {
           </p>
           <p className="text-xs text-muted-foreground">Active − Written Off</p>
         </div>
-      </div>
-
-      {/* Inline Add Form */}
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-          Add an Investment
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-          {/* Date */}
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Date
-            </label>
-            <input
-              type="date"
-              value={formDate}
-              onChange={(e) => setFormDate(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              aria-label="Investment date"
-            />
-          </div>
-
-          {/* Property */}
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Property
-            </label>
-            <select
-              value={formPropertyId}
-              onChange={(e) => setFormPropertyId(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              aria-label="Select property"
-            >
-              <option value="">All properties</option>
-              {properties.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Category
-            </label>
-            <select
-              value={formCategory}
-              onChange={(e) => setFormCategory(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              aria-label="Select category"
-            >
-              <option value="">Select category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.name}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Amount (₹)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={formAmount}
-              onChange={(e) => setFormAmount(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="0.00"
-              aria-label="Amount"
-            />
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Status
-            </label>
-            <select
-              value={formStatus}
-              onChange={(e) => setFormStatus(e.target.value as InvestmentStatus)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              aria-label="Select status"
-            >
-              <option value="active">Active</option>
-              <option value="written_off">Written Off</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Description - full width row */}
-        <div className="mt-3 flex flex-col sm:flex-row items-end gap-3">
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Description
-            </label>
-            <input
-              type="text"
-              value={formDescription}
-              onChange={(e) => setFormDescription(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="e.g. Queen bed frame, Water heater, AC unit"
-              aria-label="Description"
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleAddInvestment}
-              disabled={submitting}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-              aria-label="Add investment"
-            >
-              + Add investment
-            </button>
-            <button
-              onClick={handleClear}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-              aria-label="Clear form"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        {formError && (
-          <div className="mt-3 rounded-md bg-destructive/10 p-2.5 text-sm text-destructive" role="alert">
-            {formError}
-          </div>
-        )}
       </div>
 
       {/* Investment by Property & Category */}

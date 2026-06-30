@@ -96,7 +96,7 @@ export const computeMonthlyData = (
       .filter((inv) => inv.status === "written_off")
       .reduce((sum, inv) => sum + inv.amount, 0);
 
-    const closingBalance = openingBalance + totalIncome - totalExpenses - totalInvestments + totalRecovered;
+    const closingBalance = openingBalance + totalIncome - totalExpenses + totalInvestments - totalRecovered;
 
     results.push({
       month: currentMonth,

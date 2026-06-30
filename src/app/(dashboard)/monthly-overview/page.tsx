@@ -67,6 +67,7 @@ const MonthlyOverviewPage = () => {
   const yearTotalExpenses = monthlyData.reduce((s, m) => s + m.totalExpenses, 0);
   const yearTotalInvestments = monthlyData.reduce((s, m) => s + m.totalInvestments, 0);
   const yearTotalRecovered = monthlyData.reduce((s, m) => s + m.totalRecovered, 0);
+  const yearNetProfit = yearTotalIncome - yearTotalExpenses;
 
   if (loading) {
     return (
@@ -154,23 +155,22 @@ const MonthlyOverviewPage = () => {
           <p className="text-xl font-bold text-destructive mt-1">{formatCurrency(yearTotalExpenses)}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Investments</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Investment</p>
           <p className="text-xl font-bold text-primary mt-1">{formatCurrency(yearTotalInvestments)}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Recovered</p>
-          <p className="text-xl font-bold text-success mt-1">{formatCurrency(yearTotalRecovered)}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Recovered</p>
+          <p className="text-xl font-bold text-foreground mt-1">{formatCurrency(yearTotalRecovered)}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Net Profit</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Profit</p>
           <p className={cn(
             "text-xl font-bold mt-1",
-            yearTotalIncome - yearTotalExpenses - yearTotalInvestments + yearTotalRecovered >= 0
-              ? "text-success"
-              : "text-destructive"
+            yearNetProfit >= 0 ? "text-success" : "text-destructive"
           )}>
-            {formatCurrency(yearTotalIncome - yearTotalExpenses - yearTotalInvestments + yearTotalRecovered)}
+            {formatCurrency(yearNetProfit)}
           </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Revenue &minus; Expenses</p>
         </div>
       </div>
 
@@ -184,7 +184,7 @@ const MonthlyOverviewPage = () => {
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Opening (B/D)</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Revenue</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Expenses</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Investments</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Investment</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Recovered</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Closing (C/D)</th>
                 <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
@@ -192,7 +192,7 @@ const MonthlyOverviewPage = () => {
             </thead>
             <tbody>
               {monthlyData.map((m) => {
-                const profit = m.totalIncome - m.totalExpenses - m.totalInvestments + m.totalRecovered;
+                const profit = m.totalIncome - m.totalExpenses;
                 const hasData = m.totalIncome > 0 || m.totalExpenses > 0 || m.totalInvestments > 0 || m.totalRecovered > 0;
                 const isManual = monthlyBalances.some(
                   (b) => b.month === m.month && b.year === m.year
@@ -225,11 +225,11 @@ const MonthlyOverviewPage = () => {
                     <td className="px-4 py-3 text-right text-destructive font-medium">
                       {m.totalExpenses > 0 ? `-${formatCurrency(m.totalExpenses)}` : "-"}
                     </td>
-                    <td className="px-4 py-3 text-right text-primary font-medium">
-                      {m.totalInvestments > 0 ? `-${formatCurrency(m.totalInvestments)}` : "-"}
-                    </td>
                     <td className="px-4 py-3 text-right text-success font-medium">
-                      {m.totalRecovered > 0 ? `+${formatCurrency(m.totalRecovered)}` : "-"}
+                      {m.totalInvestments > 0 ? `+${formatCurrency(m.totalInvestments)}` : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-right text-destructive font-medium">
+                      {m.totalRecovered > 0 ? `-${formatCurrency(m.totalRecovered)}` : "-"}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-foreground">
                       {formatCurrency(m.closingBalance)}
