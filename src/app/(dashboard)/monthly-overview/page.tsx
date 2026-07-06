@@ -65,8 +65,6 @@ const MonthlyOverviewPage = () => {
 
   const yearTotalIncome = monthlyData.reduce((s, m) => s + m.totalIncome, 0);
   const yearTotalExpenses = monthlyData.reduce((s, m) => s + m.totalExpenses, 0);
-  const yearTotalInvestments = monthlyData.reduce((s, m) => s + m.totalInvestments, 0);
-  const yearTotalRecovered = monthlyData.reduce((s, m) => s + m.totalRecovered, 0);
   const yearNetProfit = yearTotalIncome - yearTotalExpenses;
 
   if (loading) {
@@ -145,7 +143,7 @@ const MonthlyOverviewPage = () => {
       </div>
 
       {/* Year Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Revenue</p>
           <p className="text-xl font-bold text-success mt-1">{formatCurrency(yearTotalIncome)}</p>
@@ -153,14 +151,6 @@ const MonthlyOverviewPage = () => {
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Expenses</p>
           <p className="text-xl font-bold text-destructive mt-1">{formatCurrency(yearTotalExpenses)}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Investment</p>
-          <p className="text-xl font-bold text-primary mt-1">{formatCurrency(yearTotalInvestments)}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Recovered</p>
-          <p className="text-xl font-bold text-foreground mt-1">{formatCurrency(yearTotalRecovered)}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Profit</p>

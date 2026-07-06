@@ -60,7 +60,7 @@ const InvestmentsPage = () => {
   const totalActive = activeInvestments.reduce((sum, inv) => sum + inv.amount, 0);
   const totalWrittenOff = writtenOffInvestments.reduce((sum, inv) => sum + inv.amount, 0);
   const currentActiveValue = totalActive - totalWrittenOff;
-  const totalIncomeEarned = totalActive - totalWrittenOff;
+  const totalRecovery = totalWrittenOff;
 
   // Investment by property
   const investmentByProperty = properties
@@ -72,14 +72,19 @@ const InvestmentsPage = () => {
     }))
     .filter((p) => p.total > 0);
 
-  // Investment by category
+  // Investment by category (written-off amounts are deducted, not added)
   const uniqueCategories = [...new Set(investments.map((inv) => inv.category))];
-  const investmentByCategory = uniqueCategories.map((cat) => ({
-    name: cat,
-    total: investments
-      .filter((inv) => inv.category === cat)
-      .reduce((sum, inv) => sum + inv.amount, 0),
-  }));
+  const investmentByCategory = uniqueCategories
+    .map((cat) => ({
+      name: cat,
+      total: investments
+        .filter((inv) => inv.category === cat)
+        .reduce(
+          (sum, inv) => sum + (inv.status === "written_off" ? -inv.amount : inv.amount),
+          0
+        ),
+    }))
+    .filter((item) => item.total !== 0);
 
   // Written off by property
   const writtenOffByProperty = properties
@@ -211,12 +216,12 @@ const InvestmentsPage = () => {
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Total Income Earned
+            Total Recovery
           </p>
           <p className="text-xl font-bold text-success mt-1">
-            {formatCurrency(totalIncomeEarned)}
+            {formatCurrency(totalRecovery)}
           </p>
-          <p className="text-xs text-muted-foreground">Active − Written Off</p>
+          <p className="text-xs text-muted-foreground">Equal to written off</p>
         </div>
       </div>
 

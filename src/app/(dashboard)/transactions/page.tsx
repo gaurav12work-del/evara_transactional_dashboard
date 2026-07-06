@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Property, Transaction, Investment, ExpenseCategory, IncomeCategory, InvestmentCategory, InvestmentStatus } from "@/types";
 import { formatCurrency, getMonthName } from "@/lib/utils";
@@ -147,7 +147,8 @@ const TransactionsPage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleAddTransaction = async () => {
+  const handleAddTransaction = async (e?: FormEvent) => {
+    e?.preventDefault();
     setFormError(null);
 
     if (!formType) {
@@ -332,6 +333,7 @@ const TransactionsPage = () => {
           {editingEntry ? "Edit Transaction" : "Add a Transaction"}
         </h2>
 
+        <form onSubmit={handleAddTransaction}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
           {/* Date */}
           <div>
@@ -470,7 +472,7 @@ const TransactionsPage = () => {
 
         <div className="flex items-center gap-3 mt-4">
           <button
-            onClick={handleAddTransaction}
+            type="submit"
             disabled={submitting}
             className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             aria-label={editingEntry ? "Update transaction" : "Add transaction"}
@@ -478,6 +480,7 @@ const TransactionsPage = () => {
             {editingEntry ? "Update transaction" : "+ Add transaction"}
           </button>
           <button
+            type="button"
             onClick={handleClear}
             className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
             aria-label={editingEntry ? "Cancel editing" : "Clear form"}
@@ -485,6 +488,7 @@ const TransactionsPage = () => {
             {editingEntry ? "Cancel" : "Clear"}
           </button>
         </div>
+        </form>
       </div>
 
       {/* Transactions Table */}

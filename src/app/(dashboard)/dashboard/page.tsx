@@ -6,11 +6,8 @@ import { Property, Transaction, Investment, MonthlyBalance } from "@/types";
 import { formatCurrency, computeMonthlyData, getShortMonthName } from "@/lib/utils";
 import PropertySwitcher from "@/components/property-switcher";
 import {
-  TrendingUp,
-  TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
-  IndianRupee,
   Package,
   PackageMinus,
   Download,
@@ -158,6 +155,7 @@ const DashboardPage = () => {
     .filter((inv) => inv.status === "written_off")
     .reduce((sum, inv) => sum + inv.amount, 0);
   const totalProfit = totalRevenue - totalExpenses;
+  const activeInvestment = totalInvestment - totalRecovered;
 
   const formatDateForCSV = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -486,36 +484,23 @@ const DashboardPage = () => {
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Active Investment</p>
+            <Package className="h-4 w-4 text-primary" />
+          </div>
+          <p className="mt-2 text-xl font-bold text-primary">
+            {formatCurrency(activeInvestment)}
+          </p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">Investment &minus; Recovered</p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Recovered</p>
             <PackageMinus className="h-4 w-4 text-muted-foreground" />
           </div>
           <p className="mt-2 text-xl font-bold text-foreground">
             {formatCurrency(totalRecovered)}
           </p>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Profit</p>
-            <IndianRupee className="h-4 w-4 text-foreground" />
-          </div>
-          <p className={`mt-2 text-xl font-bold ${totalProfit >= 0 ? "text-success" : "text-destructive"}`}>
-            {formatCurrency(totalProfit)}
-          </p>
-          <p className="mt-1 flex items-center gap-1 text-xs">
-            {totalProfit >= 0 ? (
-              <>
-                <TrendingUp className="h-3 w-3 text-success" />
-                <span className="text-success">Profit</span>
-              </>
-            ) : (
-              <>
-                <TrendingDown className="h-3 w-3 text-destructive" />
-                <span className="text-destructive">Loss</span>
-              </>
-            )}
-          </p>
-          <p className="mt-0.5 text-[10px] text-muted-foreground">Revenue &minus; Expenses</p>
         </div>
       </div>
 
