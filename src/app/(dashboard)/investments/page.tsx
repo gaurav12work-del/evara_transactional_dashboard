@@ -62,13 +62,16 @@ const InvestmentsPage = () => {
   const currentActiveValue = totalActive - totalWrittenOff;
   const totalRecovery = totalWrittenOff;
 
-  // Investment by property
+  // Investment by property (written-off amounts are deducted, not added)
   const investmentByProperty = properties
     .map((p) => ({
       name: p.name,
       total: investments
         .filter((inv) => inv.property_id === p.id)
-        .reduce((sum, inv) => sum + inv.amount, 0),
+        .reduce(
+          (sum, inv) => sum + (inv.status === "written_off" ? -inv.amount : inv.amount),
+          0
+        ),
     }))
     .filter((p) => p.total > 0);
 
