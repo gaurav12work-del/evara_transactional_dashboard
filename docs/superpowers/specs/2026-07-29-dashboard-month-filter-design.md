@@ -44,8 +44,8 @@ A new component, `src/components/month-filter.tsx`, modelled on the existing
 Property switcher and holds two `<select>` elements styled to match the selects already used
 on the transactions and monthly-overview pages.
 
-- **Year** — `All Time` (the default) followed by every year present in the fetched data,
-  newest first.
+- **Year** — `All Time` (the default) followed by every distinct year appearing in the `date`
+  of the fetched transactions or investments, newest first.
 - **Month** — `All months` followed by the twelve months. Disabled while Year is `All Time`,
   mirroring the disabled-until-prerequisite pattern the transactions form already uses for
   its Category select.
@@ -102,8 +102,10 @@ and line-chart sections keep using the unfiltered `chartData`, matching what is 
 
 Two additions:
 
-- A `Period` row in the header block: `All Time`, `2026`, or `June 2026`.
-- A filename suffix: none, `-2026`, or `-jun-2026`.
+- A `Period` row in the header block, using the full month name from `getMonthName`:
+  `All Time`, `2026`, or `June 2026`.
+- A filename suffix, using the lowercased short name from `getShortMonthName`: none,
+  `-2026`, or `-jun-2026`.
 
 `handleExportPDF` screenshots the live DOM, so it follows the filter with no change.
 
