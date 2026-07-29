@@ -3,8 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Property, Transaction, Investment, MonthlyBalance } from "@/types";
-import { formatCurrency, computeMonthlyData, getShortMonthName } from "@/lib/utils";
+import {
+  formatCurrency,
+  computeMonthlyData,
+  getShortMonthName,
+  getMonthName,
+  isInPeriod,
+} from "@/lib/utils";
 import PropertySwitcher from "@/components/property-switcher";
+import MonthFilter from "@/components/month-filter";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -33,6 +40,8 @@ const COLORS = ["#556b2f", "#8b9a6b", "#c68b2c", "#6b3a2a", "#7d8b5e", "#8b5e4a"
 
 const DashboardPage = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -97,7 +106,40 @@ const DashboardPage = () => {
     balance: m.closingBalance,
   }));
 
-  const expenseCategoryData = transactions
+  // Years offered by the filter. The selected year is kept in the list even if the
+  // current property has no rows for it, so a selection never vanishes mid-session.
+  const availableYears = [
+    ...new Set([
+      ...transactions.map((t) => new Date(t.date).getFullYear()),
+      ...investments.map((inv) => new Date(inv.date).getFullYear()),
+      ...(selectedYear !== null ? [selectedYear] : []),
+    ]),
+  ].sort((a, b) => b - a);
+
+  // Stat cards, pie charts and the CSV follow the selected period. The bar and line
+  // charts above deliberately keep reading the unfiltered arrays.
+  const periodTransactions = transactions.filter((t) =>
+    isInPeriod(t.date, selectedYear, selectedMonth)
+  );
+  const periodInvestments = investments.filter((inv) =>
+    isInPeriod(inv.date, selectedYear, selectedMonth)
+  );
+
+  const periodLabel =
+    selectedYear === null
+      ? "All Time"
+      : selectedMonth === null
+      ? `${selectedYear}`
+      : `${getMonthName(selectedMonth)} ${selectedYear}`;
+
+  const periodFileSuffix =
+    selectedYear === null
+      ? ""
+      : selectedMonth === null
+      ? `-${selectedYear}`
+      : `-${getShortMonthName(selectedMonth).toLowerCase()}-${selectedYear}`;
+
+  const expenseCategoryData = periodTransactions
     .filter((t) => t.type === "expense")
     .reduce(
       (acc, t) => {
@@ -112,7 +154,7 @@ const DashboardPage = () => {
       [] as { name: string; value: number }[]
     );
 
-  const incomeCategoryData = transactions
+  const incomeCategoryData = periodTransactions
     .filter((t) => t.type === "income")
     .reduce(
       (acc, t) => {
@@ -127,7 +169,7 @@ const DashboardPage = () => {
       [] as { name: string; value: number }[]
     );
 
-  const investmentCategoryData = investments.reduce(
+  const investmentCategoryData = periodInvestments.reduce(
     (acc, inv) => {
       const existing = acc.find((a) => a.name === inv.category);
       if (existing) {
@@ -142,16 +184,16 @@ const DashboardPage = () => {
 
   const recentTransactions = transactions.slice(0, 5);
 
-  const totalRevenue = transactions
+  const totalRevenue = periodTransactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = transactions
+  const totalExpenses = periodTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
-  const totalInvestment = investments
+  const totalInvestment = periodInvestments
     .filter((inv) => inv.status === "active")
     .reduce((sum, inv) => sum + inv.amount, 0);
-  const totalRecovered = investments
+  const totalRecovered = periodInvestments
     .filter((inv) => inv.status === "written_off")
     .reduce((sum, inv) => sum + inv.amount, 0);
   const totalProfit = totalRevenue - totalExpenses;
@@ -177,6 +219,7 @@ const DashboardPage = () => {
     // Summary section
     rows.push(["EVARAA Dashboard Export"]);
     rows.push(["Property", selectedPropertyName]);
+    rows.push(["Period", periodLabel]);
     rows.push(["Export Date", exportDate]);
     rows.push([]);
 
@@ -247,7 +290,7 @@ const DashboardPage = () => {
     // All transactions
     rows.push(["--- All Transactions ---"]);
     rows.push(["Date", "Type", "Category", "Property", "Amount", "Description"]);
-    transactions.forEach((tx) => {
+    periodTransactions.forEach((tx) => {
       const propName = properties.find((p) => p.id === tx.property_id)?.name || "Unknown";
       rows.push([
         formatDateForCSV(tx.date),
@@ -263,7 +306,7 @@ const DashboardPage = () => {
     // All investments
     rows.push(["--- All Investments ---"]);
     rows.push(["Date", "Category", "Property", "Amount", "Status", "Description"]);
-    investments.forEach((inv) => {
+    periodInvestments.forEach((inv) => {
       const propName = properties.find((p) => p.id === inv.property_id)?.name || "Unknown";
       rows.push([
         formatDateForCSV(inv.date),
@@ -283,7 +326,7 @@ const DashboardPage = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `evaraa-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `evaraa-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}${periodFileSuffix}-${new Date().toISOString().split("T")[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -336,7 +379,7 @@ const DashboardPage = () => {
         ? properties.find((p) => p.id === selectedPropertyId)?.name || "Unknown"
         : "All Properties";
 
-      pdf.save(`evaraa-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.pdf`);
+      pdf.save(`evaraa-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}${periodFileSuffix}-${new Date().toISOString().split("T")[0]}.pdf`);
     } catch (error) {
       console.error("PDF export failed:", error);
     } finally {
@@ -425,7 +468,7 @@ const DashboardPage = () => {
             Overview of your property finances
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExportPDF}
             disabled={exporting}
@@ -443,6 +486,15 @@ const DashboardPage = () => {
             <Download className="h-4 w-4" />
             Export CSV
           </button>
+          <MonthFilter
+            years={availableYears}
+            selectedYear={selectedYear}
+            selectedMonth={selectedMonth}
+            onChange={(year, month) => {
+              setSelectedYear(year);
+              setSelectedMonth(month);
+            }}
+          />
           <PropertySwitcher
             selectedPropertyId={selectedPropertyId}
             onPropertyChange={setSelectedPropertyId}
@@ -543,6 +595,11 @@ const DashboardPage = () => {
         <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground mb-4">
             Expense Breakdown
+            {selectedYear !== null && (
+              <span className="ml-2 text-xs font-medium text-muted-foreground">
+                {periodLabel}
+              </span>
+            )}
           </h2>
           {expenseCategoryData.length > 0 ? (
             <div className="h-[200px] sm:h-[300px]">
@@ -589,6 +646,11 @@ const DashboardPage = () => {
         <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground mb-4">
             Income by Category
+            {selectedYear !== null && (
+              <span className="ml-2 text-xs font-medium text-muted-foreground">
+                {periodLabel}
+              </span>
+            )}
           </h2>
           {incomeCategoryData.length > 0 ? (
             <div className="h-[250px]">
@@ -632,6 +694,11 @@ const DashboardPage = () => {
         <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground mb-4">
             Investment by Category
+            {selectedYear !== null && (
+              <span className="ml-2 text-xs font-medium text-muted-foreground">
+                {periodLabel}
+              </span>
+            )}
           </h2>
           {investmentCategoryData.length > 0 ? (
             <div className="h-[250px]">
