@@ -31,6 +31,17 @@ export const getShortMonthName = (month: number): string => {
   return months[month - 1];
 };
 
+export const isInPeriod = (
+  dateStr: string,
+  year: number | null,
+  month: number | null
+): boolean => {
+  if (year === null) return true;
+  const date = new Date(dateStr);
+  if (date.getFullYear() !== year) return false;
+  return month === null || date.getMonth() + 1 === month;
+};
+
 export const computeMonthlyData = (
   transactions: Transaction[],
   investments: Investment[],
