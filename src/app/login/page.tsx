@@ -1,17 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { createRecoveryClient } from "@/lib/supabase/recovery-client";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Mode = "signin" | "reset";
 
-const LoginPage = () => {
-  const [mode, setMode] = useState<Mode>("signin");
+// Reasons `/auth/callback` can bounce a recovery link back here. Anything not
+// listed falls back to the raw description Supabase sent.
+const CALLBACK_ERRORS: Record<string, string> = {
+  otp_expired:
+    "That reset link has expired or was already used. Request a new one below.",
+  access_denied:
+    "That reset link is no longer valid. Request a new one below.",
+  missing_code:
+    "That reset link was incomplete. Request a new one below.",
+  flow_state_not_found:
+    "Open the reset link in the same browser you requested it from, or request a new one below.",
+  flow_state_expired:
+    "That reset link has expired. Request a new one below.",
+  bad_code_verifier:
+    "Open the reset link in the same browser you requested it from, or request a new one below.",
+  validation_failed:
+    "Open the reset link in the same browser you requested it from, or request a new one below.",
+};
+
+const LoginForm = () => {
+  const searchParams = useSearchParams();
+  const callbackError = searchParams.get("error");
+
+  const [mode, setMode] = useState<Mode>(callbackError ? "reset" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    callbackError
+      ? CALLBACK_ERRORS[callbackError] ??
+          searchParams.get("error_description") ??
+          "That reset link could not be verified. Request a new one below."
+      : null
+  );
+  const [notice, setNotice] = useState<string | null>(
+    searchParams.get("reset") === "success"
+      ? "Password updated. Sign in with your new password."
+      : null
+  );
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -39,12 +72,12 @@ const LoginPage = () => {
   };
 
   const handleSendResetLink = async () => {
-    // The recovery link lands on the existing callback, which exchanges the code
-    // for a session and then forwards to the page that sets the new password.
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+    // Sent on the implicit flow so the link carries its own session and can be
+    // opened on any device — see createRecoveryClient.
+    const { error: resetError } = await createRecoveryClient().auth.resetPasswordForEmail(
       email,
       {
-        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       }
     );
 
@@ -188,5 +221,12 @@ const LoginPage = () => {
     </main>
   );
 };
+
+// `useSearchParams` needs a Suspense boundary so the shell can still prerender.
+const LoginPage = () => (
+  <Suspense>
+    <LoginForm />
+  </Suspense>
+);
 
 export default LoginPage;

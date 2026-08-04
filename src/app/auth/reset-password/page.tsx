@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createRecoveryClient } from "@/lib/supabase/recovery-client";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -12,9 +12,37 @@ const ResetPasswordPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createRecoveryClient(), []);
+
+  // The implicit flow returns the outcome in the URL fragment, which never
+  // reaches the server — a session on success, an error on a dead link. The
+  // client picks the session up as it initialises; wait for that before showing
+  // the form so a spent link says so up front rather than after the user has
+  // typed a new password.
+  useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    if (fragment.get("error") || fragment.get("error_code")) {
+      setExpired(true);
+      setChecking(false);
+      return;
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setChecking(false);
+      } else if (event === "INITIAL_SESSION") {
+        setExpired(true);
+        setChecking(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,8 +64,8 @@ const ResetPasswordPage = () => {
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
     if (updateError) {
-      // No session means the recovery code was never exchanged — an expired link,
-      // a reused link, or the link opened in a different browser to the request.
+      // No session means the recovery token was never verified — the session
+      // expired while the form sat open, or the link was already used.
       if (updateError.message.toLowerCase().includes("session")) {
         setExpired(true);
       } else {
@@ -47,8 +75,10 @@ const ResetPasswordPage = () => {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
+    // The recovery session is intentionally never written to cookies, so the
+    // app itself is still signed out — send the user through a normal sign in.
+    await supabase.auth.signOut();
+    router.push("/login?reset=success");
   };
 
   return (
@@ -63,14 +93,17 @@ const ResetPasswordPage = () => {
           </p>
         </div>
 
-        {expired ? (
+        {checking ? (
+          <div className="mt-8 rounded-lg border border-border bg-card p-5 sm:p-8 shadow-sm text-center text-sm text-muted-foreground">
+            Verifying your reset link...
+          </div>
+        ) : expired ? (
           <div className="mt-8 space-y-4 rounded-lg border border-border bg-card p-5 sm:p-8 shadow-sm">
             <div
               className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
               role="alert"
             >
-              This reset link has expired, was already used, or was opened in a
-              different browser to the one that requested it.
+              This reset link has expired or was already used.
             </div>
             <Link
               href="/login"
