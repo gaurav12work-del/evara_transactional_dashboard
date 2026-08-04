@@ -4,32 +4,73 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
+type Mode = "signin" | "reset";
+
 const LoginPage = () => {
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const switchMode = (next: Mode) => {
+    setMode(next);
     setError(null);
-    setLoading(true);
+    setNotice(null);
+  };
 
-    const { error } = await supabase.auth.signInWithPassword({
+  const handleSignIn = async () => {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      setError(error.message);
+    if (signInError) {
+      setError(signInError.message);
       setLoading(false);
       return;
     }
 
     router.push("/dashboard");
     router.refresh();
+  };
+
+  const handleSendResetLink = async () => {
+    // The recovery link lands on the existing callback, which exchanges the code
+    // for a session and then forwards to the page that sets the new password.
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+      }
+    );
+
+    if (resetError) {
+      setError(resetError.message);
+      setLoading(false);
+      return;
+    }
+
+    setNotice(
+      "If an account exists for that address, a reset link is on its way. Open it in this browser."
+    );
+    setLoading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setNotice(null);
+    setLoading(true);
+
+    if (mode === "signin") {
+      await handleSignIn();
+    } else {
+      await handleSendResetLink();
+    }
   };
 
   return (
@@ -45,7 +86,9 @@ const LoginPage = () => {
             EVARAA
           </h1>
           <p className="mt-1 text-xs tracking-wider text-muted-foreground uppercase">
-            Stay &bull; Retreat &bull; Serenity
+            {mode === "signin"
+              ? "Stay • Retreat • Serenity"
+              : "Reset your password"}
           </p>
         </div>
 
@@ -75,26 +118,28 @@ const LoginPage = () => {
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-foreground"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="••••••••"
-                aria-label="Password"
-              />
-            </div>
+            {mode === "signin" && (
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-foreground"
+                >
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="••••••••"
+                  aria-label="Password"
+                />
+              </div>
+            )}
           </div>
 
           {error && (
@@ -106,14 +151,38 @@ const LoginPage = () => {
             </div>
           )}
 
+          {notice && (
+            <div
+              className="rounded-md bg-success/10 p-3 text-sm text-success"
+              role="status"
+            >
+              {notice}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
             className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading
+              ? mode === "signin"
+                ? "Signing in..."
+                : "Sending..."
+              : mode === "signin"
+              ? "Sign in"
+              : "Send reset link"}
           </button>
 
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => switchMode(mode === "signin" ? "reset" : "signin")}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
+              {mode === "signin" ? "Forgot password?" : "Back to sign in"}
+            </button>
+          </div>
         </form>
       </div>
     </main>
