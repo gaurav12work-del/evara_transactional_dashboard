@@ -626,7 +626,7 @@ const TransactionsPage = () => {
                           : "text-primary"
                       }`}
                     >
-                      {entry.type === "income" ? "+" : "-"}
+                      {entry.type === "expense" ? "-" : "+"}
                       {formatCurrency(entry.amount)}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
