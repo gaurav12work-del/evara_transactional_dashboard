@@ -111,6 +111,8 @@ CREATE POLICY "Users can view their own income categories"
   ON income_categories FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can create their own income categories"
   ON income_categories FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own income categories"
+  ON income_categories FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own income categories"
   ON income_categories FOR DELETE USING (auth.uid() = user_id);
 
@@ -119,6 +121,8 @@ CREATE POLICY "Users can view their own expense categories"
   ON expense_categories FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can create their own expense categories"
   ON expense_categories FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own expense categories"
+  ON expense_categories FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own expense categories"
   ON expense_categories FOR DELETE USING (auth.uid() = user_id);
 
@@ -127,6 +131,8 @@ CREATE POLICY "Users can view their own investment categories"
   ON investment_categories FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can create their own investment categories"
   ON investment_categories FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own investment categories"
+  ON investment_categories FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own investment categories"
   ON investment_categories FOR DELETE USING (auth.uid() = user_id);
 
