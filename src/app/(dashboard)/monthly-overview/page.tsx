@@ -206,19 +206,19 @@ const MonthlyOverviewPage = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-foreground">
+                    <td className="px-4 py-3 text-right font-bold text-foreground">
                       {formatCurrency(m.openingBalance)}
                     </td>
-                    <td className="px-4 py-3 text-right text-success font-medium">
+                    <td className="px-4 py-3 text-right text-success font-bold">
                       {m.totalIncome > 0 ? `+${formatCurrency(m.totalIncome)}` : "-"}
                     </td>
-                    <td className="px-4 py-3 text-right text-destructive font-medium">
+                    <td className="px-4 py-3 text-right text-destructive font-bold">
                       {m.totalExpenses > 0 ? `-${formatCurrency(m.totalExpenses)}` : "-"}
                     </td>
-                    <td className="px-4 py-3 text-right text-success font-medium">
+                    <td className="px-4 py-3 text-right text-success font-bold">
                       {m.totalInvestments > 0 ? `+${formatCurrency(m.totalInvestments)}` : "-"}
                     </td>
-                    <td className="px-4 py-3 text-right text-destructive font-medium">
+                    <td className="px-4 py-3 text-right text-destructive font-bold">
                       {m.totalRecovered > 0 ? `-${formatCurrency(m.totalRecovered)}` : "-"}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-foreground">

@@ -496,7 +496,7 @@ const TransactionsPage = () => {
         {/* Table header with count and filters */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-border">
           <p className="text-sm font-medium text-foreground">
-            {filteredEntries.length} transaction{filteredEntries.length !== 1 ? "s" : ""}
+            <span className="font-bold">{filteredEntries.length}</span> transaction{filteredEntries.length !== 1 ? "s" : ""}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -618,7 +618,7 @@ const TransactionsPage = () => {
                       {getPropertyName(entry.property_id)}
                     </td>
                     <td
-                      className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${
+                      className={`px-4 py-3 text-right font-bold whitespace-nowrap ${
                         entry.type === "income"
                           ? "text-success"
                           : entry.type === "expense"
@@ -678,7 +678,7 @@ const TransactionsPage = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Showing {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredEntries.length)} of {filteredEntries.length}
+              Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span>–<span className="font-bold">{Math.min(currentPage * itemsPerPage, filteredEntries.length)}</span> of <span className="font-bold">{filteredEntries.length}</span>
             </p>
             <div className="flex items-center gap-2">
               <button

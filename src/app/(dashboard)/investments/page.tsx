@@ -241,7 +241,7 @@ const InvestmentsPage = () => {
               {investmentByProperty.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <span className="text-sm text-foreground">{item.name}</span>
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     {formatCurrency(item.total)}
                   </span>
                 </div>
@@ -261,7 +261,7 @@ const InvestmentsPage = () => {
               {investmentByCategory.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <span className="text-sm text-foreground">{item.name}</span>
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     {formatCurrency(item.total)}
                   </span>
                 </div>
@@ -284,7 +284,7 @@ const InvestmentsPage = () => {
               {writtenOffByProperty.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <span className="text-sm text-foreground">{item.name}</span>
-                  <span className="text-sm font-semibold text-destructive">
+                  <span className="text-sm font-bold text-destructive">
                     {formatCurrency(item.total)}
                   </span>
                 </div>
@@ -304,7 +304,7 @@ const InvestmentsPage = () => {
               {writtenOffByCategory.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <span className="text-sm text-foreground">{item.name}</span>
-                  <span className="text-sm font-semibold text-destructive">
+                  <span className="text-sm font-bold text-destructive">
                     {formatCurrency(item.total)}
                   </span>
                 </div>
@@ -319,7 +319,7 @@ const InvestmentsPage = () => {
         {/* Table header with count and filters */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-border">
           <p className="text-sm font-medium text-foreground">
-            {filteredInvestments.length} investment{filteredInvestments.length !== 1 ? "s" : ""}
+            <span className="font-bold">{filteredInvestments.length}</span> investment{filteredInvestments.length !== 1 ? "s" : ""}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -426,7 +426,7 @@ const InvestmentsPage = () => {
                     <td className="px-4 py-3 text-muted-foreground">
                       {inv.description || "-"}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-foreground whitespace-nowrap">
+                    <td className="px-4 py-3 text-right font-bold text-foreground whitespace-nowrap">
                       {formatCurrency(inv.amount)}
                     </td>
                     <td className="px-4 py-3">
@@ -460,7 +460,7 @@ const InvestmentsPage = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Showing {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredInvestments.length)} of {filteredInvestments.length}
+              Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span>–<span className="font-bold">{Math.min(currentPage * itemsPerPage, filteredInvestments.length)}</span> of <span className="font-bold">{filteredInvestments.length}</span>
             </p>
             <div className="flex items-center gap-2">
               <button

@@ -569,7 +569,7 @@ const DashboardPage = () => {
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#d9cfc2" />
                   <XAxis dataKey="name" fontSize={12} tickLine={false} />
-                  <YAxis fontSize={12} tickLine={false} />
+                  <YAxis fontSize={12} fontWeight={700} tickLine={false} />
                   <Tooltip
                     contentStyle={{
                       borderRadius: "8px",
@@ -750,7 +750,7 @@ const DashboardPage = () => {
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#d9cfc2" />
                 <XAxis dataKey="name" fontSize={12} tickLine={false} />
-                <YAxis fontSize={12} tickLine={false} />
+                <YAxis fontSize={12} fontWeight={700} tickLine={false} />
                 <Tooltip
                   contentStyle={{
                     borderRadius: "8px",
@@ -812,7 +812,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <p
-                  className={`text-sm font-semibold ${
+                  className={`text-sm font-bold ${
                     tx.type === "income" ? "text-success" : "text-destructive"
                   }`}
                 >
