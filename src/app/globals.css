@@ -33,3 +33,17 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* Make all text bold across the app (overrides Tailwind font-weight utilities) */
+*,
+*::before,
+*::after {
+  font-weight: 700 !important;
+}
+
+/* Edge draws its own password reveal button; PasswordInput supplies one that
+   works in every browser, so hide the native one to avoid a duplicate eye. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}

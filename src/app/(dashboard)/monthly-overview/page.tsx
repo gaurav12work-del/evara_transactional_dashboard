@@ -63,6 +63,20 @@ const MonthlyOverviewPage = () => {
     selectedYear
   );
 
+  // Years offered by the selector, derived from the data actually present so a
+  // record dated beyond the current year is still reachable. The current and
+  // selected years are always included, so the list is never empty and the
+  // selection never vanishes mid-session.
+  const availableYears = [
+    ...new Set([
+      ...transactions.map((t) => new Date(t.date).getFullYear()),
+      ...investments.map((inv) => new Date(inv.date).getFullYear()),
+      ...monthlyBalances.map((b) => b.year),
+      CURRENT_YEAR,
+      selectedYear,
+    ]),
+  ].sort((a, b) => b - a);
+
   const yearTotalIncome = monthlyData.reduce((s, m) => s + m.totalIncome, 0);
   const yearTotalExpenses = monthlyData.reduce((s, m) => s + m.totalExpenses, 0);
   const yearNetProfit = yearTotalIncome - yearTotalExpenses;
@@ -131,7 +145,7 @@ const MonthlyOverviewPage = () => {
             className="w-full sm:w-auto rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             aria-label="Select year"
           >
-            {Array.from({ length: CURRENT_YEAR - 2026 + 2 }, (_, i) => 2026 + i).map((y) => (
+            {availableYears.map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>

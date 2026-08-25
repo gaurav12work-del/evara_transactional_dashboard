@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createRecoveryClient } from "@/lib/supabase/recovery-client";
+import PasswordInput from "@/components/password-input";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -125,15 +126,13 @@ const ResetPasswordPage = () => {
                 >
                   New password
                 </label>
-                <input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   autoComplete="new-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   placeholder="••••••••"
                   aria-label="New password"
                 />
@@ -149,15 +148,13 @@ const ResetPasswordPage = () => {
                 >
                   Confirm new password
                 </label>
-                <input
+                <PasswordInput
                   id="confirm-password"
                   name="confirm-password"
-                  type="password"
                   autoComplete="new-password"
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   placeholder="••••••••"
                   aria-label="Confirm new password"
                 />
