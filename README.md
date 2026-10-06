@@ -1,6 +1,6 @@
-# EVARAA - Property Transaction Dashboard
+# AVYRA - Property Transaction Dashboard
 
-An Airbnb property expense tracker for EVARAA (Stay &bull; Retreat &bull; Serenity), built with Next.js, Supabase, and TailwindCSS.
+An Airbnb property expense tracker for AVYRA (Stay &bull; Retreat &bull; Serenity), built with Next.js, Supabase, and TailwindCSS.
 
 ## Features
 

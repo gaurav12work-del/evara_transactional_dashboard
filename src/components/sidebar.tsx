@@ -42,12 +42,12 @@ const Sidebar = () => {
     <>
       <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
         <img
-          src="https://inzxvkqqqaksridaypmt.supabase.co/storage/v1/object/public/logo/evara%20logo.jpeg"
-          alt="EVARAA Logo"
+          src="/avyra-logo.jpeg"
+          alt="AVYRA Logo"
           className="h-9 w-9 rounded-lg object-cover"
         />
         <span className="text-lg font-semibold tracking-wide text-foreground">
-          EVARAA
+          AVYRA
         </span>
       </div>
 

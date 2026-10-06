@@ -87,7 +87,7 @@ const ResetPasswordPage = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center flex flex-col items-center">
           <h1 className="text-3xl font-bold tracking-widest text-foreground">
-            EVARAA
+            AVYRA
           </h1>
           <p className="mt-1 text-xs tracking-wider text-muted-foreground uppercase">
             Choose a new password

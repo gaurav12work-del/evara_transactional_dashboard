@@ -217,7 +217,7 @@ const DashboardPage = () => {
     const exportDate = `${String(today.getDate()).padStart(2, "0")}-${String(today.getMonth() + 1).padStart(2, "0")}-${today.getFullYear()}`;
 
     // Summary section
-    rows.push(["EVARAA Dashboard Export"]);
+    rows.push(["AVYRA Dashboard Export"]);
     rows.push(["Property", selectedPropertyName]);
     rows.push(["Period", periodLabel]);
     rows.push(["Export Date", exportDate]);
@@ -326,7 +326,7 @@ const DashboardPage = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `evaraa-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}${periodFileSuffix}-${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `avyra-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}${periodFileSuffix}-${new Date().toISOString().split("T")[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -379,7 +379,7 @@ const DashboardPage = () => {
         ? properties.find((p) => p.id === selectedPropertyId)?.name || "Unknown"
         : "All Properties";
 
-      pdf.save(`evaraa-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}${periodFileSuffix}-${new Date().toISOString().split("T")[0]}.pdf`);
+      pdf.save(`avyra-dashboard-${selectedPropertyName.replace(/\s+/g, "-").toLowerCase()}${periodFileSuffix}-${new Date().toISOString().split("T")[0]}.pdf`);
     } catch (error) {
       console.error("PDF export failed:", error);
     } finally {

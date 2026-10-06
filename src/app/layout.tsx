@@ -13,11 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EVARAA - Property Transaction Dashboard",
+  title: "AVYRA - Property Transaction Dashboard",
   description: "Track your Airbnb property expenses and income with ease",
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-icon.png",
+    icon: "/avyra-logo.jpeg",
+    apple: "/avyra-logo.jpeg",
   },
 };
 

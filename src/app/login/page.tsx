@@ -112,12 +112,12 @@ const LoginForm = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center flex flex-col items-center">
           <img
-            src="https://inzxvkqqqaksridaypmt.supabase.co/storage/v1/object/public/logo/evara%20logo.jpeg"
-            alt="EVARAA Logo"
+            src="/avyra-logo.jpeg"
+            alt="AVYRA Logo"
             className="h-16 w-16 rounded-xl object-cover mb-3"
           />
           <h1 className="text-3xl font-bold tracking-widest text-foreground">
-            EVARAA
+            AVYRA
           </h1>
           <p className="mt-1 text-xs tracking-wider text-muted-foreground uppercase">
             {mode === "signin"
